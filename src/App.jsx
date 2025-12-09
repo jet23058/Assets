@@ -1,0 +1,1457 @@
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Cat, ChevronLeft, ChevronRight, Plus, Upload, Wallet, TrendingUp, DollarSign, Calendar, X, Save, FileJson, ArrowUpRight, ArrowDownRight, ArrowLeft, Edit2, Trash2, Info, Check, TrendingDown, RefreshCw, FileText, Mountain, ArrowDown, AlertCircle, Building2, Lock, PieChart, Download, StickyNote, ShoppingBag, Filter, ChevronDown, PiggyBank, Activity } from 'lucide-react';
+
+// --- CSS 樣式與 Tailwind 設定模擬 ---
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+    body {
+      background-color: #F9F9F7;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .font-serif-tc { font-family: 'Noto Serif TC', serif; }
+    .font-inter { font-family: 'Inter', sans-serif; }
+    
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Tailwind Config 動畫模擬 */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    
+    .animate-\[fadeIn_0\.2s\] { animation: fadeIn 0.2s ease-out; }
+    .animate-\[slideUp_0\.3s_ease-out\] { animation: slideUp 0.3s ease-out; }
+    .animate-\[slideIn_0\.3s_ease-out\] { animation: slideIn 0.3s ease-out; }
+  `}</style>
+);
+
+// --- 全域匯率設定 (僅供花費匯入與參考使用) ---
+const DEFAULT_EXCHANGE_RATES = {
+    'TWD': 1,
+    'USD': 32.5,
+    'JPY': 0.21,
+    'EUR': 35.2,
+    'CNY': 4.5,
+    'USDT': 32.5
+};
+
+// 預設模擬數據
+const INITIAL_DATA = {
+    "records": {
+        "2022-12-31": [
+            { "id": 1, "type": "fixed", "name": "永豐銀行", "amount": 250000, "currency": "TWD" },
+            { "id": 2, "type": "floating", "name": "元大證券", "amount": 100000, "currency": "TWD", "originalAmount": 100000, "exchangeRate": 1 }
+        ],
+        "2023-01-15": [
+            { "id": 3, "type": "fixed", "name": "永豐銀行", "amount": 300000, "currency": "TWD" },
+            { "id": 4, "type": "floating", "name": "元大證券", "amount": 150000, "currency": "TWD", "originalAmount": 150000, "exchangeRate": 1 }
+        ],
+        "2023-06-30": [
+            { "id": 5, "type": "fixed", "name": "永豐銀行", "amount": 350000, "currency": "TWD" },
+            { "id": 6, "type": "floating", "name": "元大證券", "amount": 180000, "currency": "TWD", "originalAmount": 5800, "exchangeRate": 31.03 }
+        ],
+        "2023-12-31": [
+            { "id": 7, "type": "fixed", "name": "永豐銀行", "amount": 400000, "currency": "TWD" },
+            { "id": 8, "type": "floating", "name": "元大證券", "amount": 200000, "currency": "TWD", "originalAmount": 6450, "exchangeRate": 31.00 }
+        ]
+    },
+    "memos": {
+        "2023-06-30": "年中獎金入帳，股市回溫",
+        "2023-12-31": "年終結算，資產配置調整"
+    },
+    "incomes": {
+        "2022-01": { 
+            "totalAmount": 40000,
+            "sources": [
+                { "company": "薪資", "bank": "永豐銀行", "currency": "TWD", "originalAmount": 40000, "exchangeRate": 1, "amount": 40000, "memo": "每月固定薪資" }
+            ]
+        },
+        "2022-12": { "totalAmount": 40000, "sources": [] },
+        "2023-01": { "totalAmount": 45000, "sources": [] },
+        "2023-02": { "totalAmount": 45000, "sources": [] },
+        "2023-03": { "totalAmount": 48000, "sources": [] },
+        "2023-06": { 
+            "totalAmount": 120000, 
+            "sources": [
+                { "company": "公司", "bank": "永豐銀行", "currency": "TWD", "originalAmount": 120000, "exchangeRate": 1, "amount": 120000, "memo": "年中績效獎金" }
+            ]
+        }, 
+        "2023-12": { "totalAmount": 90000, "sources": [] }
+    },
+    "expenses": {}
+};
+
+// --- 工具函數 ---
+const formatMoney = (val) => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 }).format(val);
+const formatWan = (val) => {
+    if (Math.abs(val) < 10000) return formatMoney(val);
+    const wan = val / 10000;
+    return `${new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 1 }).format(wan)} 萬`;
+};
+const formatRate = (val) => `${(val * 100).toFixed(1)}%`;
+const formatPercent = (value) => !isFinite(value) ? "0.0%" : `${Math.abs(value).toFixed(1)}%`;
+
+const parseCSV = (text) => {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let insideQuote = false;
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    for (let i = 0; i < normalizedText.length; i++) {
+        const char = normalizedText[i];
+        const nextChar = normalizedText[i + 1];
+        if (char === '"') {
+            if (insideQuote && nextChar === '"') {
+                currentCell += '"';
+                i++;
+            } else {
+                insideQuote = !insideQuote;
+            }
+        } else if (char === ',' && !insideQuote) {
+            currentRow.push(currentCell.trim());
+            currentCell = '';
+        } else if (char === '\n' && !insideQuote) {
+            currentRow.push(currentCell.trim());
+            if (currentRow.length > 1 || (currentRow.length === 1 && currentRow[0] !== '')) {
+                rows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+        } else {
+            currentCell += char;
+        }
+    }
+    if (currentCell || currentRow.length > 0) {
+        currentRow.push(currentCell.trim());
+        rows.push(currentRow);
+    }
+    return rows;
+};
+
+// --- 組件 ---
+const AmountWithTooltip = ({ amount, className = "", iconColor = "text-slate-300", align = "center", prefix = "" }) => (
+    <div className={`flex items-center gap-1 w-fit ${className}`}>
+        <span>{prefix}{formatWan(amount)}</span>
+        {/* 將 Tooltip 結構與 hover 效果移至 icon 的包覆層，而非最外層 */}
+        <div className="group relative">
+            <Info size={14} className={`${iconColor} opacity-70 group-hover:opacity-100 transition-opacity cursor-help`} />
+            <div className={`absolute bottom-full mb-2 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl whitespace-nowrap ${align === 'center' ? 'left-1/2 -translate-x-1/2' : ''} ${align === 'left' ? 'left-0' : ''} ${align === 'right' ? 'right-0' : ''}`}>
+                完整金額: {formatMoney(amount)} TWD
+                <div className={`absolute top-full w-2 h-2 bg-slate-800 rotate-45 ${align === 'center' ? 'left-1/2 -translate-x-1/2' : ''} ${align === 'left' ? 'left-2' : ''} ${align === 'right' ? 'right-2' : ''}`}></div>
+            </div>
+        </div>
+    </div>
+);
+
+// 新增：綜合損益分析 Tooltip 組件，支援 align 屬性控制左右對齊
+const AnalysisTooltip = ({ incomeDiff, assetDiff, compositeScore, align = "center" }) => {
+    // 根據 align 屬性決定 Tooltip 與箭頭的位置
+    const tooltipPosition = align === "right" ? "right-0 translate-x-0" : "left-1/2 -translate-x-1/2";
+    const arrowPosition = align === "right" ? "right-3 translate-x-1/2" : "left-1/2 -translate-x-1/2";
+
+    return (
+        <div className={`absolute bottom-full mb-2 w-[220px] rounded-xl bg-slate-800 p-4 text-[11px] text-white opacity-0 shadow-2xl transition-all group-hover/tooltip:opacity-100 pointer-events-none z-50 scale-95 group-hover/tooltip:scale-100 origin-bottom ${tooltipPosition}`}>
+            <div className="font-bold mb-2 pb-2 border-b border-slate-600 text-teal-300 text-center flex items-center justify-center gap-2">
+                <TrendingUp size={12} /> 損益變動分析
+            </div>
+            <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <span className="text-slate-400">1. 收入成長</span>
+                    <span className={`font-mono font-bold ${incomeDiff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {incomeDiff > 0 ? '+' : ''}{formatWan(incomeDiff)}
+                    </span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
+                    <span>(本月收入 - 上月收入)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-slate-400">2. 資產成長</span>
+                    <span className={`font-mono font-bold ${assetDiff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {assetDiff > 0 ? '+' : ''}{formatWan(assetDiff)}
+                    </span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-slate-500 px-1 border-b border-slate-700 pb-2">
+                    <span>(本月資產 - 上月資產)</span>
+                </div>
+                <div className="flex justify-between items-center pt-1">
+                    <span className="text-white font-bold">3. 綜合表現 (1+2)</span>
+                    <span className={`font-mono text-sm font-bold ${compositeScore >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                        {compositeScore > 0 ? '+' : ''}{formatWan(compositeScore)}
+                    </span>
+                </div>
+            </div>
+            <div className={`absolute -bottom-1 h-2 w-2 rotate-45 bg-slate-800 ${arrowPosition}`}></div>
+        </div>
+    );
+};
+
+const CustomChartTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-xl border border-slate-700">
+                <p className="font-inter font-medium text-teal-300">{formatMoney(payload[0].value)}</p>
+            </div>
+        );
+    }
+    return null;
+};
+
+const DiffBadge = ({ current, prev }) => {
+    if (prev === undefined || prev === null) return <span className="text-[10px] text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded ml-2 font-bold">New</span>;
+    const diff = current - prev;
+    if (diff === 0) return <span className="text-[10px] text-slate-300 ml-2">-</span>;
+    const isPositive = diff > 0;
+    const colorClass = isPositive ? "text-emerald-600 bg-emerald-50" : "text-rose-500 bg-rose-50";
+    const Icon = isPositive ? TrendingUp : TrendingDown;
+    return (
+        <div className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded ml-2 ${colorClass}`}>
+            <Icon size={10} />
+            <span>{formatWan(Math.abs(diff))}</span>
+        </div>
+    );
+};
+
+const AlertModal = ({ title, message, onClose }) => (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-[fadeIn_0.2s]">
+        <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl relative flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-600">
+                <AlertCircle size={24} />
+            </div>
+            <h3 className="text-lg font-serif-tc font-bold text-slate-800 mb-2">{title}</h3>
+            <p className="text-sm text-slate-500 mb-6 font-inter leading-relaxed">{message}</p>
+            <button onClick={onClose} className="w-full py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-900 transition-colors">
+                知道了
+            </button>
+        </div>
+    </div>
+);
+
+const ConfirmModal = ({ title, message, onConfirm, onCancel }) => (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-[fadeIn_0.2s]">
+        <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl relative flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mb-4 text-rose-500">
+                <Trash2 size={24} />
+            </div>
+            <h3 className="text-lg font-serif-tc font-bold text-slate-800 mb-2">{title}</h3>
+            <p className="text-sm text-slate-500 mb-6 font-inter leading-relaxed whitespace-pre-line">{message}</p>
+            <div className="flex gap-3 w-full">
+                <button onClick={onCancel} className="flex-1 py-2.5 bg-slate-100 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">
+                    取消
+                </button>
+                <button onClick={onConfirm} className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl font-bold text-sm hover:bg-rose-600 transition-colors">
+                    刪除
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
+const YearSelectorModal = ({ currentYear, availableYears, yearlyTrendData, onSelect, onClose }) => {
+    const hasChartData = yearlyTrendData && yearlyTrendData.some(d => d.assets > 0);
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-[fadeIn_0.2s]">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative flex flex-col">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                <h3 className="text-lg font-serif-tc font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <Calendar size={20} className="text-teal-600" />
+                    選擇年份
+                </h3>
+                {hasChartData ? (
+                    <div className="h-32 w-full mb-6 -ml-2 animate-[fadeIn_0.2s]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={yearlyTrendData}>
+                                <defs>
+                                    <linearGradient id="colorYearly" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#0D9488" stopOpacity={0.2}/>
+                                        <stop offset="95%" stopColor="#0D9488" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter'}} dy={5} />
+                                <Tooltip content={<CustomChartTooltip />} cursor={{stroke: '#CBD5E1', strokeWidth: 1}} />
+                                <Area type="monotone" dataKey="assets" stroke="#0F766E" strokeWidth={2} fillOpacity={1} fill="url(#colorYearly)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                ) : (
+                    <div className="mb-4 text-center py-4 bg-slate-50 rounded-xl border border-slate-100 border-dashed text-slate-400 text-xs">
+                        尚無資產趨勢資料
+                    </div>
+                )}
+                <div className="grid grid-cols-3 gap-3 max-h-[300px] overflow-y-auto hide-scrollbar">
+                    {availableYears.length > 0 ? availableYears.map(year => (
+                        <button
+                            key={year}
+                            onClick={() => onSelect(year)}
+                            className={`py-2 px-1 rounded-xl text-sm font-bold font-inter transition-all ${
+                                year === currentYear 
+                                ? 'bg-teal-600 text-white shadow-md shadow-teal-200' 
+                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                            }`}
+                        >
+                            {year}
+                        </button>
+                    )) : (
+                        <div className="col-span-3 text-center text-slate-400 text-sm py-2">無可用年份</div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const handleProcessExpenseCSV = (file, onSuccess, onError) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const csvText = e.target.result;
+            const rows = parseCSV(csvText);
+            
+            if (rows.length === 0) throw new Error("CSV 檔案是空的");
+
+            const headers = rows[0];
+            const idxDate = headers.indexOf('日期');
+            const idxAccount = headers.indexOf('帳戶');
+            const idxName = headers.indexOf('名稱');
+            const idxAmount = headers.indexOf('金額');
+            const idxMainCat = headers.indexOf('主類別');
+            const idxSubCat = headers.indexOf('子類別');
+            const idxType = headers.indexOf('類型');
+            const idxCurrency = headers.indexOf('幣種');
+
+            if (idxDate === -1 || idxAmount === -1) throw new Error("CSV 格式不符，找不到日期或金額欄位");
+
+            const expensesByMonth = {};
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.length < headers.length) continue; 
+                if (idxType !== -1 && row[idxType] !== '支出') continue;
+
+                const dateStr = row[idxDate]; 
+                const dateParts = dateStr.split('/');
+                if (dateParts.length !== 3) continue;
+                
+                const y = dateParts[0];
+                const m = dateParts[1].padStart(2, '0');
+                const d = dateParts[2].padStart(2, '0');
+                const isoDate = `${y}-${m}-${d}`;
+                const monthKey = `${y}-${m}`;
+
+                let amountStr = row[idxAmount];
+                amountStr = amountStr.replace(/,/g, '').replace(/-/g, ''); 
+                const rawAmount = parseFloat(amountStr);
+
+                if (isNaN(rawAmount)) continue;
+
+                const currencyCode = idxCurrency !== -1 ? row[idxCurrency] : 'TWD';
+                const rate = DEFAULT_EXCHANGE_RATES[currencyCode] || 1;
+                const twdAmount = Math.round(rawAmount * rate);
+
+                if (!expensesByMonth[monthKey]) expensesByMonth[monthKey] = [];
+
+                expensesByMonth[monthKey].push({
+                    date: isoDate,
+                    account: idxAccount !== -1 ? row[idxAccount] : 'Unknown',
+                    category: idxMainCat !== -1 ? row[idxMainCat] : '',
+                    subCategory: idxSubCat !== -1 ? row[idxSubCat] : '',
+                    name: idxName !== -1 ? row[idxName] : '',
+                    amount: twdAmount,
+                    originalAmount: rawAmount,
+                    currency: currencyCode,
+                    id: `csv-${i}-${Date.now()}`
+                });
+            }
+            onSuccess(expensesByMonth);
+        } catch (err) {
+            console.error(err);
+            onError(err.message);
+        }
+    };
+    reader.readAsText(file);
+};
+
+const AddIncomeModal = ({ onClose, onSave, assetNames }) => {
+    const today = new Date();
+    const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    
+    const [date, setDate] = useState(currentMonthStr);
+    const [company, setCompany] = useState("");
+    const [bank, setBank] = useState("");
+    const [currency, setCurrency] = useState("TWD");
+    const [exchangeRate, setExchangeRate] = useState("1");
+    const [originalAmount, setOriginalAmount] = useState("");
+    const [amount, setAmount] = useState("");
+    const [memo, setMemo] = useState("");
+    const [errorMsg, setErrorMsg] = useState("");
+
+    useEffect(() => {
+        if (originalAmount && exchangeRate) {
+            const val = parseFloat(originalAmount) * parseFloat(exchangeRate);
+            setAmount(val.toFixed(0));
+        } else {
+            setAmount("");
+        }
+    }, [originalAmount, exchangeRate]);
+
+    const handleCurrencyChange = (e) => {
+        const newCurr = e.target.value;
+        setCurrency(newCurr);
+        if (newCurr === 'TWD') {
+            setExchangeRate('1');
+        } else {
+            setExchangeRate("");
+        }
+    };
+
+    const handleSubmit = () => {
+        setErrorMsg("");
+        if (!date) return setErrorMsg("請選擇月份");
+        if (!company) return setErrorMsg("請輸入收入來源");
+        if (!amount) return setErrorMsg("請輸入金額");
+
+        const newIncomeSource = {
+            company,
+            bank, 
+            currency,
+            originalAmount: Number(originalAmount) || Number(amount),
+            exchangeRate: Number(exchangeRate),
+            amount: Number(amount),
+            memo: memo.trim()
+        };
+        onSave(newIncomeSource, date);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-[fadeIn_0.2s]">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                <h3 className="text-xl font-serif-tc font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <div className="bg-teal-100 p-2 rounded-lg"><DollarSign size={20} className="text-teal-700" /></div> 新增收入
+                </h3>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto hide-scrollbar px-1">
+                    {errorMsg && <div className="bg-rose-50 text-rose-500 text-xs p-3 rounded-xl flex items-center gap-2 font-bold animate-shake"><AlertCircle size={16} />{errorMsg}</div>}
+                    <div>
+                        <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">月份</label>
+                        <input type="month" value={date} onChange={(e) => setDate(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-slate-50 font-inter text-slate-800" />
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">收入來源 (公司/客戶)</label>
+                        <div className="relative">
+                            <Building2 size={16} className="absolute left-3 top-3.5 text-slate-400" />
+                            <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} className="w-full pl-9 p-3 border border-slate-200 rounded-xl focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-slate-50 font-serif-tc text-slate-800 placeholder:text-slate-300" placeholder="例如：Google, 永豐銀行..." />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">入帳銀行/帳戶</label>
+                        <div className="relative">
+                            <select value={bank} onChange={(e) => setBank(e.target.value)} className={`w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm appearance-none ${!bank ? 'text-slate-400' : 'text-slate-800'}`}>
+                                <option value="" disabled>選擇關聯帳戶...</option>
+                                {assetNames.map(name => <option key={name} value={name}>{name}</option>)}
+                            </select>
+                            <div className="absolute right-3 top-3.5 pointer-events-none text-slate-400"><ChevronRight size={16} className="rotate-90" /></div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">幣別</label>
+                            <select value={currency} onChange={handleCurrencyChange} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm appearance-none">
+                                <option value="TWD">TWD (台幣)</option>
+                                <option value="USD">USD (美金)</option>
+                                <option value="JPY">JPY (日圓)</option>
+                                <option value="EUR">EUR (歐元)</option>
+                                <option value="CNY">CNY (人民幣)</option>
+                                <option value="USDT">USDT</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">匯率</label>
+                            <input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} disabled={currency === 'TWD'} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm disabled:text-slate-300" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">原幣金額</label>
+                            <input type="number" value={originalAmount} onChange={(e) => setOriginalAmount(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm font-inter text-right placeholder:text-slate-300" placeholder="0.00" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">金額 (TWD)</label>
+                            <input type="text" value={amount} readOnly className="w-full p-3 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 text-sm font-inter text-right cursor-not-allowed" placeholder="-" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">備註</label>
+                        <input type="text" value={memo} onChange={(e) => setMemo(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-slate-50 text-sm font-serif-tc text-slate-800 placeholder:text-slate-300" placeholder="例如：年終獎金、加班費..." />
+                    </div>
+                </div>
+                <div className="mt-6 flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-slate-500 hover:bg-slate-100 font-bold text-sm transition-colors">取消</button>
+                    <button onClick={handleSubmit} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white font-bold text-sm hover:bg-teal-700 shadow-lg shadow-teal-200 transition-all">確認新增</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const [date, setDate] = useState(todayStr);
+    const [type, setType] = useState('fixed'); 
+    const [name, setName] = useState('');
+    const [currency, setCurrency] = useState('TWD');
+    const [exchangeRate, setExchangeRate] = useState('1');
+    const [originalAmount, setOriginalAmount] = useState('');
+    const [amount, setAmount] = useState('');
+    const [isFetchingRate, setIsFetchingRate] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+
+    const uniqueAssetOptions = useMemo(() => {
+        const map = new Map();
+        Object.keys(historyRecords).sort().forEach(date => {
+            historyRecords[date].forEach(r => map.set(r.name, r.type));
+        });
+        return Array.from(map.entries()).map(([name, type]) => ({ name, type }));
+    }, [historyRecords]);
+
+    const handleNameSelect = (e) => {
+        const selectedName = e.target.value;
+        setName(selectedName);
+        let found = null;
+        const allDates = Object.keys(historyRecords).sort().reverse(); 
+        for (const d of allDates) {
+            const record = historyRecords[d].find(r => r.name === selectedName);
+            if (record) { found = record; break; }
+        }
+        if (found && found.type === type) {
+             setCurrency(found.currency || 'TWD');
+             if (found.exchangeRate) setExchangeRate(String(found.exchangeRate));
+        }
+    };
+
+    const fetchRate = () => {
+        if (currency === 'TWD') return;
+        setIsFetchingRate(true);
+        setTimeout(() => {
+            const mockRates = DEFAULT_EXCHANGE_RATES; 
+            const rate = mockRates[currency] || (Math.random() * 30 + 1).toFixed(2);
+            setExchangeRate(String(rate));
+            setIsFetchingRate(false);
+            if (originalAmount) {
+                const twd = (parseFloat(originalAmount) * rate).toFixed(0);
+                setAmount(twd);
+            }
+        }, 800);
+    };
+
+    useEffect(() => {
+        if (currency !== 'TWD' && originalAmount && exchangeRate) {
+            const val = parseFloat(originalAmount) * parseFloat(exchangeRate);
+            setAmount(val.toFixed(0)); 
+        } else if (currency === 'TWD') {
+            setAmount(originalAmount);
+        }
+    }, [originalAmount, exchangeRate, currency]);
+
+    const handleOriginalAmountChange = (e) => {
+        const val = e.target.value;
+        if (val.indexOf('.') !== -1 && val.split('.')[1].length > 2) return;
+        setOriginalAmount(val);
+    };
+
+    const handleSubmit = () => {
+        setErrorMsg("");
+        if (!name || !amount) return setErrorMsg("請填寫名稱與金額");
+        if (!date) return setErrorMsg("請選擇日期");
+
+        const cleanName = name.trim();
+        const assetsInDate = historyRecords[date] || [];
+        const isDuplicate = assetsInDate.some(asset => asset.name === cleanName);
+
+        if (isDuplicate) {
+            setErrorMsg(`「${cleanName}」在 ${date} 已存在，請使用編輯功能。`);
+            return;
+        }
+
+        const newAsset = {
+            id: Date.now(),
+            type,
+            name: cleanName,
+            amount: Number(amount),
+            currency,
+            originalAmount: Number(originalAmount) || Number(amount),
+            exchangeRate: Number(exchangeRate)
+        };
+        onSave(newAsset, date); 
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-[fadeIn_0.2s]">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                <h3 className="text-xl font-serif-tc font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <div className="bg-teal-100 p-2 rounded-lg"><Wallet size={20} className="text-teal-700" /></div> 新增資產
+                </h3>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto hide-scrollbar px-1">
+                    {errorMsg && <div className="bg-rose-50 text-rose-500 text-xs p-3 rounded-xl flex items-center gap-2 font-bold animate-shake"><AlertCircle size={16} />{errorMsg}</div>}
+                    <div>
+                        <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">日期</label>
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-slate-50 font-inter text-slate-800" />
+                    </div>
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <button onClick={() => { setType('fixed'); setName(''); }} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'fixed' ? 'bg-white shadow text-teal-700' : 'text-slate-400 hover:text-slate-600'}`}>固定資產</button>
+                        <button onClick={() => { setType('floating'); setName(''); }} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'floating' ? 'bg-white shadow text-teal-700' : 'text-slate-400 hover:text-slate-600'}`}>浮動資產</button>
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">名稱</label>
+                        <div className="relative">
+                            <input list="history-names" type="text" value={name} onChange={handleNameSelect} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-slate-50 font-serif-tc text-slate-800 transition-all placeholder:text-slate-300" placeholder={`輸入${type === 'fixed' ? '固定' : '浮動'}資產名稱...`} />
+                            <datalist id="history-names">
+                                {uniqueAssetOptions.filter(opt => opt.type === type).map(opt => <option key={opt.name} value={opt.name} />)}
+                            </datalist>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">幣值</label>
+                            <select value={currency} onChange={(e) => { setCurrency(e.target.value); if(e.target.value==='TWD') setExchangeRate('1'); }} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm appearance-none">
+                                <option value="TWD">TWD (台幣)</option>
+                                <option value="USD">USD (美金)</option>
+                                <option value="JPY">JPY (日圓)</option>
+                                <option value="EUR">EUR (歐元)</option>
+                                <option value="CNY">CNY (人民幣)</option>
+                                <option value="USDT">USDT</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">匯率</label>
+                            <div className="relative">
+                                <input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} disabled={currency === 'TWD'} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm disabled:text-slate-300" />
+                                {currency !== 'TWD' && (
+                                    <button onClick={fetchRate} className="absolute right-2 top-2 bottom-2 px-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-600 flex items-center justify-center transition-colors" title="抓取匯率">
+                                        <RefreshCw size={14} className={isFetchingRate ? 'animate-spin' : ''} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">原幣金額</label>
+                            <input type="number" value={originalAmount} onChange={handleOriginalAmountChange} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm font-inter text-right placeholder:text-slate-300" placeholder="0.00" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">台幣等值</label>
+                            <input type="text" value={amount} readOnly className="w-full p-3 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 text-sm font-inter text-right cursor-not-allowed" placeholder="-" />
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-6 flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-slate-500 hover:bg-slate-100 font-bold text-sm transition-colors">取消</button>
+                    <button onClick={handleSubmit} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white font-bold text-sm hover:bg-teal-700 shadow-lg shadow-teal-200 transition-all">新增</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [activeTab, setActiveTab] = useState('assets'); 
+    const [localAssets, setLocalAssets] = useState([]);
+    const [localMemo, setLocalMemo] = useState(""); 
+    const [localIncomes, setLocalIncomes] = useState([]); 
+    const [expenseFilter, setExpenseFilter] = useState("all"); 
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null); 
+    const [confirmDeleteDate, setConfirmDeleteDate] = useState(false); 
+    
+    useEffect(() => {
+        if (data.records[dateStr]) {
+            const assets = data.records[dateStr].map((item, idx) => ({ ...item, id: item.id || `legacy-${Date.now()}-${idx}` }));
+            setLocalAssets(JSON.parse(JSON.stringify(assets)));
+        } else {
+            setLocalAssets([]);
+        }
+        let memoContent = data.memos[dateStr] || ""; 
+        setLocalMemo(memoContent);
+        const yearMonth = dateStr.substring(0, 7);
+        const incomes = data.incomes[yearMonth]?.sources || [];
+        setLocalIncomes(incomes.map((item, idx) => ({ ...item, _tempId: idx })));
+    }, [dateStr, data]);
+
+    const sortedDates = useMemo(() => {
+        const allDates = new Set(Object.keys(data.records));
+        Object.keys(data.memos || {}).forEach(d => allDates.add(d));
+        Object.keys(data.incomes || {}).forEach(monthStr => {
+             const hasDateInMonth = Array.from(allDates).some(d => d.startsWith(monthStr));
+             if (!hasDateInMonth) allDates.add(`${monthStr}-01`);
+        });
+        Object.keys(data.expenses || {}).forEach(monthStr => {
+            const hasDateInMonth = Array.from(allDates).some(d => d.startsWith(monthStr));
+            if(!hasDateInMonth) allDates.add(`${monthStr}-01`);
+        });
+        return Array.from(allDates).sort();
+    }, [data]);
+
+    const currentIndex = sortedDates.indexOf(dateStr);
+    const prevDate = currentIndex > 0 ? sortedDates[currentIndex - 1] : null;
+    const nextDate = currentIndex < sortedDates.length - 1 ? sortedDates[currentIndex + 1] : null;
+
+    const prevMonthAssetsMap = useMemo(() => {
+        if (!prevDate) return {};
+        const assets = data.records[prevDate] || [];
+        return assets.reduce((acc, item) => {
+            acc[`${item.type}-${item.name}`] = item.amount;
+            return acc;
+        }, {});
+    }, [prevDate, data.records]);
+
+    const prevTotalAssets = useMemo(() => {
+        if (!prevDate) return 0;
+        const assets = data.records[prevDate] || [];
+        return assets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    }, [prevDate, data.records]);
+
+    const currentMonthExpenses = useMemo(() => {
+        const yearMonth = dateStr.substring(0, 7);
+        return data.expenses?.[yearMonth] || [];
+    }, [dateStr, data.expenses]);
+
+    const prevMonthIncome = useMemo(() => {
+        if (!prevDate) return 0;
+        const prevYearMonth = prevDate.substring(0, 7);
+        const prevIncomeData = data.incomes[prevYearMonth];
+        return prevIncomeData ? (prevIncomeData.totalAmount || 0) : 0;
+    }, [prevDate, data.incomes]);
+
+    const stats = useMemo(() => {
+        const totalAssets = localAssets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const floatingAssets = localAssets.filter(item => item.type === 'floating').reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const investmentRate = totalAssets > 0 ? floatingAssets / totalAssets : 0;
+        const monthlyIncome = localIncomes.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const monthlyCost = currentMonthExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        
+        const incomeDiff = monthlyIncome - prevMonthIncome;
+        const assetDiff = totalAssets - prevTotalAssets;
+        const compositeScore = incomeDiff + assetDiff;
+
+        return { totalAssets, investmentRate, monthlyIncome, monthlyCost, incomeDiff, assetDiff, compositeScore };
+    }, [localAssets, localIncomes, currentMonthExpenses, prevTotalAssets, prevMonthIncome]);
+
+    const filteredExpenses = useMemo(() => {
+        if (expenseFilter === 'all') return currentMonthExpenses;
+        return currentMonthExpenses.filter(ex => ex.account === expenseFilter);
+    }, [currentMonthExpenses, expenseFilter]);
+
+    const expenseAccounts = useMemo(() => {
+        const accounts = new Set(currentMonthExpenses.map(ex => ex.account));
+        return Array.from(accounts).sort();
+    }, [currentMonthExpenses]);
+
+    const handleNavigate = (targetDate) => { if (targetDate) onUpdateData('NAVIGATE_DATE', targetDate); };
+    const handleAssetChange = (id, field, value) => setLocalAssets(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+    
+    const handleIncomeChange = (idx, field, value) => {
+        setLocalIncomes(prev => prev.map((item, i) => {
+            if (i !== idx) return item;
+            const updated = { ...item, [field]: value };
+            if (field === 'originalAmount' || field === 'exchangeRate' || field === 'currency') {
+                const rate = field === 'exchangeRate' ? value : updated.exchangeRate;
+                const orig = field === 'originalAmount' ? value : updated.originalAmount;
+                if (field === 'currency' && value === 'TWD') {
+                    updated.exchangeRate = 1;
+                    updated.amount = Number(updated.originalAmount) || 0;
+                } else {
+                    updated.amount = Number((Number(orig) * Number(rate)).toFixed(0));
+                }
+            }
+            return updated;
+        }));
+    };
+    
+    const handleDeleteIncome = (idx) => setLocalIncomes(prev => prev.filter((_, i) => i !== idx));
+    const handleDeleteClick = (e, id) => { e.stopPropagation(); e.preventDefault(); setConfirmDeleteId(id); };
+    const confirmDeleteAsset = () => { if (confirmDeleteId) { setLocalAssets(prev => prev.filter(item => item.id !== confirmDeleteId)); setConfirmDeleteId(null); }};
+    const handleDeleteDay = () => setConfirmDeleteDate(true);
+    const executeDeleteDay = () => onUpdateData('DELETE_DATE', dateStr);
+    
+    const handleSave = () => {
+        onUpdateData('UPDATE_RECORDS', { date: dateStr, assets: localAssets });
+        onUpdateData('UPDATE_MEMO', { date: dateStr, content: localMemo });
+        const cleanIncomes = localIncomes.map(({ _tempId, ...rest }) => rest);
+        onUpdateData('UPDATE_INCOME', { date: dateStr, sources: cleanIncomes });
+        setIsEditing(false);
+    };
+
+    const fixedAssets = localAssets.filter(i => i.type === 'fixed');
+    const floatingAssets = localAssets.filter(i => i.type === 'floating');
+
+    return (
+        <div className="fixed inset-0 bg-[#F9F9F7] z-40 overflow-y-auto animate-[slideIn_0.3s_ease-out]">
+            {confirmDeleteId && <ConfirmModal title="刪除資產" message="確定要刪除這筆資產紀錄嗎？" onConfirm={confirmDeleteAsset} onCancel={() => setConfirmDeleteId(null)} />}
+            {confirmDeleteDate && <ConfirmModal title="刪除整日紀錄" message={`確定要刪除 ${dateStr} 的所有資產與備忘嗎？\n此動作無法復原。`} onConfirm={executeDeleteDay} onCancel={() => setConfirmDeleteDate(false)} />}
+
+            <header className="sticky top-0 bg-[#F9F9F7]/95 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between z-50">
+                <button onClick={onBack} className="p-2 -ml-2 text-slate-500 hover:text-slate-800 transition-colors"><ArrowLeft size={24} strokeWidth={1.5} /></button>
+                <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-4">
+                        <button disabled={!prevDate} onClick={() => handleNavigate(prevDate)} className={`p-1 ${!prevDate ? 'text-slate-200' : 'text-slate-400 hover:text-slate-800'}`}><ChevronLeft size={20} /></button>
+                        <span className="font-serif-tc font-bold text-xl text-slate-800 tracking-wide">{dateStr}</span>
+                        <button disabled={!nextDate} onClick={() => handleNavigate(nextDate)} className={`p-1 ${!nextDate ? 'text-slate-200' : 'text-slate-400 hover:text-slate-800'}`}><ChevronRight size={20} /></button>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 -mr-2">
+                    <button onClick={handleDeleteDay} className="p-2 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors" title="刪除整日紀錄"><Trash2 size={20} strokeWidth={1.5} /></button>
+                    {(activeTab === 'assets' || activeTab === 'income') && (
+                        <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} className={`p-2 rounded-full transition-colors flex items-center gap-1 ${isEditing ? 'bg-teal-600 text-white shadow-lg px-4' : 'text-slate-500 hover:bg-slate-200'}`}>
+                            {isEditing ? <><Check size={18} /><span className="text-xs font-bold">儲存</span></> : <Edit2 size={20} strokeWidth={1.5} />}
+                        </button>
+                    )}
+                </div>
+            </header>
+
+            <main className="px-6 py-8 pb-32 space-y-8">
+                <section>
+                    <div className="flex items-center gap-2 mb-2"><FileText size={16} className="text-teal-500" /><h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">當月備忘</h3></div>
+                    {isEditing ? <textarea value={localMemo} onChange={(e) => setLocalMemo(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white focus:border-teal-500 outline-none text-sm text-slate-700 font-serif-tc min-h-[80px]" placeholder="輸入本月備忘..." /> : <div className={`p-4 rounded-xl border border-slate-200/60 bg-white text-sm text-slate-700 font-serif-tc min-h-[60px] ${!localMemo ? 'text-slate-300 italic' : ''}`}>{localMemo || "無備忘紀錄"}</div>}
+                </section>
+
+                <section className="space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
+                        <button onClick={() => { setActiveTab('assets'); setIsEditing(false); }} className={`p-4 rounded-xl border shadow-sm flex flex-col items-center justify-center text-center transition-all ${activeTab === 'assets' ? 'bg-teal-50 border-teal-500 ring-1 ring-teal-500 text-teal-900' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
+                            <div className={`text-[10px] uppercase tracking-wider font-inter mb-1 ${activeTab === 'assets' ? 'text-teal-600 font-bold' : 'text-slate-400'}`}>總資產 (Total)</div>
+                            <AmountWithTooltip amount={stats.totalAssets} className={`text-lg font-serif-tc font-bold justify-center ${activeTab === 'assets' ? 'text-teal-800' : 'text-slate-800'}`} align="center" />
+                        </button>
+                        <button onClick={() => { setActiveTab('income'); setIsEditing(false); }} className={`p-4 rounded-xl border shadow-sm flex flex-col items-center justify-center text-center transition-all ${activeTab === 'income' ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500 text-emerald-900' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
+                            <div className={`text-[10px] uppercase tracking-wider font-inter mb-1 ${activeTab === 'income' ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>本月收入 (Income)</div>
+                            <AmountWithTooltip amount={stats.monthlyIncome} className={`text-lg font-serif-tc font-bold justify-center ${activeTab === 'income' ? 'text-emerald-800' : 'text-emerald-700'}`} align="center" prefix="+" />
+                        </button>
+                        <button onClick={() => { setActiveTab('cost'); setIsEditing(false); }} className={`p-4 rounded-xl border shadow-sm flex flex-col items-center justify-center text-center transition-all ${activeTab === 'cost' ? 'bg-rose-50 border-rose-500 ring-1 ring-rose-500 text-rose-900' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
+                            <div className={`text-[10px] uppercase tracking-wider font-inter mb-1 ${activeTab === 'cost' ? 'text-rose-600 font-bold' : 'text-slate-400'}`}>本月花費 (Cost)</div>
+                            <AmountWithTooltip amount={stats.monthlyCost} className={`text-lg font-serif-tc font-bold justify-center ${activeTab === 'cost' ? 'text-rose-800' : 'text-rose-700'}`} align="center" prefix="-" />
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm flex flex-col items-center justify-center text-center">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1 flex items-center gap-1">
+                                綜合損益 <Activity size={12} />
+                                <div className="group/tooltip relative">
+                                    <Info size={10} className="cursor-help text-slate-300 hover:text-slate-500 transition-colors" />
+                                    <AnalysisTooltip incomeDiff={stats.incomeDiff} assetDiff={stats.assetDiff} compositeScore={stats.compositeScore} />
+                                </div>
+                            </div>
+                            <div className={`text-lg font-serif-tc font-bold ${stats.compositeScore >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                {stats.compositeScore >= 0 ? '+' : ''}{formatWan(stats.compositeScore)}
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm flex flex-col items-center justify-center text-center">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1 flex items-center gap-1">投資占比 <PieChart size={12} /></div>
+                            <div className="text-lg font-inter font-bold text-teal-600">{formatRate(stats.investmentRate)}</div>
+                        </div>
+                    </div>
+                </section>
+
+                {activeTab === 'assets' && (
+                    <div className="space-y-8 animate-[fadeIn_0.2s]">
+                        <section>
+                            <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><Wallet size={16} /> 固定資產</h3>
+                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+                                {fixedAssets.map((asset, idx) => (
+                                    <div key={asset.id} className={`p-4 flex items-center justify-between ${idx !== fixedAssets.length -1 ? 'border-b border-slate-100' : ''}`}>
+                                        {isEditing ? (
+                                            <div className="flex-1 flex gap-2 items-center animate-[fadeIn_0.2s]">
+                                                <input type="text" value={asset.name || ''} onChange={(e) => handleAssetChange(asset.id, 'name', e.target.value)} className="w-1/3 p-2 border border-slate-200 rounded-lg focus:border-slate-800 outline-none bg-slate-50 text-sm font-serif-tc" placeholder="名稱" />
+                                                <input type="number" value={asset.amount || ''} onChange={(e) => handleAssetChange(asset.id, 'amount', Number(e.target.value))} className="w-1/3 p-2 border border-slate-200 rounded-lg focus:border-slate-800 outline-none bg-slate-50 text-sm font-inter text-right" placeholder="金額" />
+                                                <button type="button" onClick={(e) => handleDeleteClick(e, asset.id)} className="ml-auto p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors z-20 relative"><Trash2 size={16} /></button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="font-serif-tc text-slate-700">{asset.name}</span>
+                                                <div className="flex flex-col items-end"><span className="font-inter font-medium text-slate-800">{formatMoney(asset.amount)}</span><DiffBadge current={asset.amount} prev={prevMonthAssetsMap[`${asset.type}-${asset.name}`]} /></div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                                {fixedAssets.length === 0 && <div className="p-4 text-center text-slate-300 text-sm">無固定資產</div>}
+                            </div>
+                        </section>
+                        <section>
+                            <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><TrendingUp size={16} /> 浮動資產 (投資)</h3>
+                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+                                {floatingAssets.map((asset, idx) => (
+                                    <div key={asset.id} className={`p-4 flex items-center justify-between relative ${idx !== floatingAssets.length -1 ? 'border-b border-slate-100' : ''}`}>
+                                        {isEditing ? (
+                                            <div className="flex-1 flex gap-2 items-center animate-[fadeIn_0.2s]">
+                                                <input type="text" value={asset.name || ''} onChange={(e) => handleAssetChange(asset.id, 'name', e.target.value)} className="w-1/3 p-2 border border-slate-200 rounded-lg focus:border-slate-800 outline-none bg-slate-50 text-sm font-serif-tc" placeholder="名稱" />
+                                                <input type="number" value={asset.amount || ''} onChange={(e) => handleAssetChange(asset.id, 'amount', Number(e.target.value))} className="w-1/3 p-2 border border-slate-200 rounded-lg focus:border-slate-800 outline-none bg-slate-50 text-sm font-inter text-right" placeholder="金額" />
+                                                <button type="button" onClick={(e) => handleDeleteClick(e, asset.id)} className="ml-auto p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors z-20 relative"><Trash2 size={16} /></button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center gap-2 group">
+                                                    <span className="font-serif-tc text-slate-700">{asset.name}</span>
+                                                    {(asset.originalAmount || asset.currency !== 'TWD') && (
+                                                        <div className="relative flex items-center">
+                                                            <Info size={14} className="text-slate-300 cursor-help hover:text-teal-500 transition-colors" />
+                                                            <div className="absolute left-0 bottom-full mb-2 w-48 bg-slate-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl border border-slate-700">
+                                                                <div className="flex justify-between mb-1"><span className="text-slate-400">原始金額:</span><span className="font-inter">{new Intl.NumberFormat().format(asset.originalAmount)} {asset.currency}</span></div>
+                                                                {asset.exchangeRate && <div className="flex justify-between"><span className="text-slate-400">匯率:</span><span className="font-inter">{asset.exchangeRate}</span></div>}
+                                                                <div className="absolute bottom-[-4px] left-1 w-2 h-2 bg-slate-800 rotate-45 border-r border-b border-slate-700"></div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col items-end"><span className="font-inter font-medium text-slate-800">{formatMoney(asset.amount)}</span><DiffBadge current={asset.amount} prev={prevMonthAssetsMap[`${asset.type}-${asset.name}`]} /></div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                                {floatingAssets.length === 0 && <div className="p-4 text-center text-slate-300 text-sm">無浮動資產</div>}
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+                {activeTab === 'income' && (
+                    <div className="space-y-4 animate-[fadeIn_0.2s]">
+                        <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><DollarSign size={16} /> 收入細項</h3>
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+                            {localIncomes.length > 0 ? localIncomes.map((item, idx) => (
+                                <div key={idx} className={`p-4 ${idx !== localIncomes.length - 1 ? 'border-b border-slate-100' : ''}`}>
+                                    {isEditing ? (
+                                        <div className="flex flex-col gap-3 animate-[fadeIn_0.2s] relative bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                            <div className="flex gap-2">
+                                                <div className="flex-1"><label className="text-[10px] text-slate-400 font-bold mb-1 block">來源</label><input type="text" value={item.company || ''} onChange={(e) => handleIncomeChange(idx, 'company', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none bg-white text-sm font-serif-tc" placeholder="公司/來源" /></div>
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] text-slate-400 font-bold mb-1 block">銀行</label>
+                                                    <select value={item.bank || ''} onChange={(e) => handleIncomeChange(idx, 'bank', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none bg-white text-xs text-slate-600 h-[38px]">
+                                                        <option value="" disabled>選擇帳戶</option>
+                                                        {assetNames.map(name => <option key={name} value={name}>{name}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="w-1/3">
+                                                    <label className="text-[10px] text-slate-400 font-bold mb-1 block">幣別</label>
+                                                    <select value={item.currency || 'TWD'} onChange={(e) => handleIncomeChange(idx, 'currency', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none bg-white text-xs text-slate-600 h-[38px]">
+                                                        <option value="TWD">TWD</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="EUR">EUR</option><option value="CNY">CNY</option><option value="USDT">USDT</option>
+                                                    </select>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="text-[10px] text-slate-400 font-bold mb-1 block">匯率</label>
+                                                    <input type="number" value={item.exchangeRate || 1} onChange={(e) => handleIncomeChange(idx, 'exchangeRate', e.target.value)} disabled={item.currency === 'TWD'} className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none bg-white text-sm text-right disabled:text-slate-300" />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1"><label className="text-[10px] text-slate-400 font-bold mb-1 block">原幣金額</label><input type="number" value={item.originalAmount || ''} onChange={(e) => handleIncomeChange(idx, 'originalAmount', Number(e.target.value))} className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none bg-white text-sm font-inter text-right" placeholder="0.00" /></div>
+                                                <div className="flex-1"><label className="text-[10px] text-slate-400 font-bold mb-1 block">台幣金額</label><input type="text" value={item.amount || ''} readOnly className="w-full p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 text-sm font-inter text-right cursor-not-allowed" /></div>
+                                            </div>
+                                            <div><label className="text-[10px] text-slate-400 font-bold mb-1 block">備註</label><input type="text" value={item.memo || ''} onChange={(e) => handleIncomeChange(idx, 'memo', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg focus:border-emerald-500 outline-none bg-white text-sm font-serif-tc text-slate-600" placeholder="備註..." /></div>
+                                            <button type="button" onClick={() => handleDeleteIncome(idx)} className="absolute top-2 right-2 p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors" title="刪除"><Trash2 size={16} /></button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-serif-tc font-bold text-slate-700">{item.company}</span>
+                                                    {item.memo && <div className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded text-[10px] text-slate-500 max-w-[120px] truncate"><StickyNote size={10} /><span className="truncate">{item.memo}</span></div>}
+                                                </div>
+                                                <span className="text-xs text-slate-400 font-inter mt-0.5 flex items-center gap-1">{item.bank && <><Wallet size={10} /> {item.bank}</>}</span>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className="font-inter font-medium text-emerald-600">+{formatMoney(item.amount)}</span>
+                                                {item.currency !== 'TWD' && <span className="text-[10px] text-slate-300 font-inter">{item.originalAmount} {item.currency}</span>}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )) : <div className="p-8 flex flex-col items-center justify-center text-slate-300"><FileText size={32} className="mb-2 opacity-50" /><span className="text-sm">本月尚無收入明細</span></div>}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'cost' && (
+                    <div className="space-y-4 animate-[fadeIn_0.2s] relative">
+                        <div className="sticky top-[72px] z-30 bg-[#F9F9F7]/95 backdrop-blur-sm py-3 -mx-2 px-2 flex justify-between items-center border-b border-slate-200/50 shadow-sm transition-all">
+                            <h3 className="text-sm font-serif-tc text-slate-500 font-bold flex items-center gap-2"><ShoppingBag size={16} /> 花費細項</h3>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none"><Filter size={12} className="text-slate-400" /></div>
+                                <select value={expenseFilter} onChange={(e) => setExpenseFilter(e.target.value)} className="pl-7 pr-8 py-1 bg-white border border-slate-200 rounded-lg text-xs font-inter text-slate-600 focus:outline-none focus:border-rose-400 appearance-none shadow-sm cursor-pointer">
+                                    <option value="all">所有帳戶</option>
+                                    {expenseAccounts.map(acc => <option key={acc} value={acc}>{acc}</option>)}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none"><ChevronDown size={12} className="text-slate-400" /></div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+                            {filteredExpenses.length > 0 ? (
+                                <div className="divide-y divide-slate-100">
+                                    {filteredExpenses.map((expense) => (
+                                        <div key={expense.id} className="p-4 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
+                                            <div className="flex-1 min-w-0 pr-4">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-serif-tc font-bold text-slate-700 truncate">{expense.name}</span>
+                                                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">{expense.category}-{expense.subCategory}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs text-slate-400 font-inter">
+                                                    <span className="flex items-center gap-1"><Calendar size={10} /> {expense.date.split('-')[2]}日</span>
+                                                    <span className="flex items-center gap-1"><Wallet size={10} /> {expense.account}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className="font-inter font-medium text-rose-500">-{formatMoney(expense.amount)}</span>
+                                                {expense.currency !== 'TWD' && <span className="text-[10px] text-slate-300 font-inter">{new Intl.NumberFormat().format(expense.originalAmount)} {expense.currency}</span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-8 flex flex-col items-center justify-center text-slate-300"><ShoppingBag size={32} className="mb-2 opacity-50" /><span className="text-sm">本月無相關花費紀錄</span></div>
+                            )}
+                        </div>
+                        <div className="text-center text-[10px] text-slate-400">* 花費資料來自外部匯入，不支援修改刪除</div>
+                    </div>
+                )}
+            </main>
+        </div>
+    );
+};
+
+export default function App() {
+    const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+    const [data, setData] = useState(INITIAL_DATA);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showAddAssetModal, setShowAddAssetModal] = useState(false);
+    const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
+    const [showYearSelector, setShowYearSelector] = useState(false);
+    
+    const fileInputRef = useRef(null); 
+    const expenseFileInputRef = useRef(null); 
+    const [alertInfo, setAlertInfo] = useState({ show: false, title: '', message: '' });
+    const [view, setView] = useState('dashboard');
+    const [selectedDate, setSelectedDate] = useState(null);
+    const realCurrentYear = new Date().getFullYear();
+
+    const allAssetNames = useMemo(() => {
+        const names = new Set();
+        Object.values(data.records).forEach(assets => assets.forEach(asset => names.add(asset.name)));
+        return Array.from(names).sort();
+    }, [data.records]);
+
+    const availableYears = useMemo(() => {
+        const years = new Set();
+        Object.keys(data.records || {}).forEach(d => years.add(new Date(d).getFullYear()));
+        Object.keys(data.incomes || {}).forEach(d => years.add(parseInt(d.split('-')[0])));
+        Object.keys(data.memos || {}).forEach(d => years.add(new Date(d).getFullYear()));
+        Object.keys(data.expenses || {}).forEach(d => years.add(parseInt(d.split('-')[0])));
+        
+        const thisYear = new Date().getFullYear();
+        return Array.from(years).filter(y => y <= thisYear).sort((a, b) => b - a);
+    }, [data]);
+
+    const getYearEndAssets = (year, sourceData) => {
+        let lastDate = null;
+        let totalAssets = 0;
+        Object.entries(sourceData.records || {}).forEach(([dateStr, assets]) => {
+            const date = new Date(dateStr);
+            if (date.getFullYear() === year) {
+                if (!lastDate || date > lastDate) {
+                    lastDate = date;
+                    totalAssets = assets.reduce((sum, item) => sum + (item.amount || 0), 0);
+                }
+            }
+        });
+        return totalAssets;
+    };
+
+    const yearlyTrendData = useMemo(() => {
+        return availableYears.map(year => {
+             return { year, assets: getYearEndAssets(year, data) };
+        }).sort((a,b) => a.year - b.year);
+    }, [availableYears, data]);
+
+    const getYearTotalIncome = (year, sourceData) => {
+        let total = 0;
+        Object.entries(sourceData.incomes || {}).forEach(([dateStr, incomeData]) => {
+            const y = parseInt(dateStr.split('-')[0]);
+            if (y === year) total += (incomeData.totalAmount || 0);
+        });
+        return total;
+    };
+
+    const yearlyGrowthStats = useMemo(() => {
+        const yearDates = Object.keys(data.records).filter(d => new Date(d).getFullYear() === currentYear).sort();
+        if (yearDates.length < 2) return { amount: 0, rate: 0 };
+        const firstDate = yearDates[0];
+        const lastDate = yearDates[yearDates.length - 1];
+        const getAssetsSum = (date) => data.records[date].reduce((sum, item) => sum + (item.amount || 0), 0);
+        const startAmount = getAssetsSum(firstDate);
+        const endAmount = getAssetsSum(lastDate);
+        const diff = endAmount - startAmount;
+        const rate = startAmount > 0 ? diff / startAmount : 0;
+        return { amount: diff, rate };
+    }, [data, currentYear]);
+
+    const processedData = useMemo(() => {
+        const monthlyStats = Array(12).fill(0).map((_, i) => ({ month: i + 1, assets: 0, income: 0, cost: 0, balance: 0, memo: null, hasRecord: false, latestDate: null, allRecords: [], analysis: { incomeDiff: 0, assetDiff: 0, compositeScore: 0 } }));
+        const monthRecordsMap = new Map();
+        
+        Object.entries(data.records || {}).forEach(([dateStr, assets]) => {
+            const date = new Date(dateStr);
+            if (date.getFullYear() === currentYear) {
+                const totalAssets = assets.reduce((sum, item) => sum + (item.amount || 0), 0);
+                const monthIdx = date.getMonth();
+                if (!monthRecordsMap.has(monthIdx)) monthRecordsMap.set(monthIdx, []);
+                monthRecordsMap.get(monthIdx).push({ dateStr, assets: totalAssets });
+            }
+        });
+
+        monthRecordsMap.forEach((records, monthIdx) => {
+            records.sort((a, b) => new Date(a.dateStr) - new Date(b.dateStr));
+            const latest = records[records.length - 1];
+            monthlyStats[monthIdx].hasRecord = true;
+            monthlyStats[monthIdx].assets = latest.assets;
+            monthlyStats[monthIdx].latestDate = latest.dateStr;
+            monthlyStats[monthIdx].allRecords = records;
+        });
+
+        let lastKnownAsset = getYearEndAssets(currentYear - 1, data);
+        for (let i = 0; i < 12; i++) {
+            if (monthlyStats[i].hasRecord) lastKnownAsset = monthlyStats[i].assets;
+            else monthlyStats[i].assets = lastKnownAsset;
+        }
+
+        Object.entries(data.incomes || {}).forEach(([dateStr, incomeData]) => {
+            const [yearStr, monthStr] = dateStr.split('-');
+            if (parseInt(yearStr) === currentYear) {
+                const monthIdx = parseInt(monthStr) - 1;
+                monthlyStats[monthIdx].income = incomeData.totalAmount || 0;
+                if (!monthlyStats[monthIdx].latestDate) monthlyStats[monthIdx].latestDate = `${dateStr}-01`;
+            }
+        });
+        
+        Object.keys(data.expenses || {}).forEach(monthStr => {
+            const [yStr, mStr] = monthStr.split('-');
+            if (parseInt(yStr) === currentYear) {
+                const mIdx = parseInt(mStr) - 1;
+                const cost = data.expenses[monthStr].reduce((acc, curr) => acc + curr.amount, 0);
+                monthlyStats[mIdx].cost = cost;
+                if (!monthlyStats[mIdx].latestDate) monthlyStats[mIdx].latestDate = `${monthStr}-01`;
+            }
+        });
+
+        Object.entries(data.memos || {}).forEach(([dateStr, content]) => {
+            const date = new Date(dateStr);
+            if (date.getFullYear() === currentYear) {
+                const monthIdx = date.getMonth();
+                monthlyStats[monthIdx].memo = content;
+                if (!monthlyStats[monthIdx].latestDate) monthlyStats[monthIdx].latestDate = dateStr;
+            }
+        });
+
+        // 取得去年12月的收入作為初始比較基準 (若無則為0)
+        const prevYearDecKey = `${currentYear - 1}-12`;
+        let prevIncome = data.incomes[prevYearDecKey]?.totalAmount || 0;
+        let prevAsset = getYearEndAssets(currentYear - 1, data);
+
+        for (let i = 0; i < 12; i++) {
+            const currentAsset = monthlyStats[i].assets;
+            const currentIncome = monthlyStats[i].income;
+            const cost = monthlyStats[i].cost || 0;
+            
+            // 計算餘額 (原本的邏輯)
+            monthlyStats[i].balance = (currentAsset - prevAsset) - cost;
+
+            // 計算分析指標 (新增)
+            const incomeDiff = currentIncome - prevIncome;
+            const assetDiff = currentAsset - prevAsset;
+            const compositeScore = incomeDiff + assetDiff;
+            monthlyStats[i].analysis = { incomeDiff, assetDiff, compositeScore };
+
+            prevAsset = currentAsset;
+            prevIncome = currentIncome; // 更新比較基準為本月收入
+        }
+        
+        return monthlyStats;
+    }, [data, currentYear]);
+
+    const assetExtremes = useMemo(() => {
+        let allPoints = [];
+        processedData.forEach(m => {
+            if (m.hasRecord) allPoints = [...allPoints, ...m.allRecords.map(r => ({ val: r.assets, month: m.month }))];
+        });
+        if (allPoints.length === 0) return { max: { val: 0, month: 0 }, min: { val: 0, month: 0 } };
+        const max = allPoints.reduce((prev, current) => (prev.val > current.val) ? prev : current);
+        const min = allPoints.reduce((prev, current) => (prev.val < current.val) ? prev : current);
+        return { max, min };
+    }, [processedData]);
+
+    const yearStats = useMemo(() => {
+        const thisYearIncome = getYearTotalIncome(currentYear, data);
+        const lastYearIncome = getYearTotalIncome(currentYear - 1, data);
+        const avgIncome = thisYearIncome / 12;
+        const assetGrowthMetric = lastYearIncome > 0 ? (thisYearIncome / lastYearIncome) * 100 : 0; 
+        const totalAccumulatedIncome = Object.values(data.incomes || {}).reduce((sum, item) => sum + (item.totalAmount || 0), 0);
+        const totalIncomeMetric = totalAccumulatedIncome > 0 ? (thisYearIncome / totalAccumulatedIncome) * 100 : 0;
+        return { totalIncome: thisYearIncome, avgIncome, assetGrowthMetric, totalIncomeMetric, totalAccumulatedIncome };
+    }, [data, currentYear]);
+
+    const handleShowAlert = (title, message) => setAlertInfo({ show: true, title, message });
+
+    const handleExportData = () => {
+        const jsonString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const href = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = href;
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        link.download = `meow-assets-backup-${dateStr}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(href);
+        handleShowAlert("匯出成功", "資料已成功下載");
+    };
+
+    const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                if (!parsed.records) throw new Error("缺少 records 欄位");
+                setData(parsed);
+                setCurrentYear(new Date().getFullYear());
+                setShowImportModal(false);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+                handleShowAlert("匯入成功", "資料已成功更新");
+            } catch (err) { console.error(err); handleShowAlert("格式錯誤", "請確認 JSON 格式是否正確"); }
+        };
+        reader.readAsText(file);
+    };
+
+    const handleExpenseUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        handleProcessExpenseCSV(file, (expensesByMonth) => {
+            setData(prev => ({ ...prev, expenses: expensesByMonth }));
+            handleShowAlert("匯入成功", "花費細項已成功覆蓋");
+            setShowAddModal(false);
+            if (expenseFileInputRef.current) expenseFileInputRef.current.value = "";
+        }, (errorMsg) => {
+            handleShowAlert("匯入失敗", errorMsg);
+            if (expenseFileInputRef.current) expenseFileInputRef.current.value = "";
+        });
+    };
+
+    const handleMonthClick = (monthData) => { if (monthData.latestDate) { setSelectedDate(monthData.latestDate); setView('detail'); } };
+    
+    const handleDetailUpdate = (type, payload) => {
+        if (type === 'NAVIGATE_DATE') setSelectedDate(payload);
+        else if (type === 'UPDATE_RECORDS') {
+            const { date, assets } = payload;
+            setData(prev => ({ ...prev, records: { ...prev.records, [date]: assets } }));
+        } else if (type === 'UPDATE_MEMO') {
+            const { date, content } = payload;
+            setData(prev => ({ ...prev, memos: { ...prev.memos, [date]: content } }));
+        } else if (type === 'UPDATE_INCOME') {
+            const { date, sources } = payload;
+            const yearMonth = date.substring(0, 7);
+            const newTotal = sources.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            setData(prev => ({
+                ...prev,
+                incomes: {
+                    ...prev.incomes,
+                    [yearMonth]: { ...prev.incomes[yearMonth], totalAmount: newTotal, sources: sources }
+                }
+            }));
+        } else if (type === 'DELETE_DATE') {
+            const dateToDelete = payload;
+            setData(prev => {
+                const newRecords = { ...prev.records }; delete newRecords[dateToDelete];
+                const newMemos = { ...prev.memos }; delete newMemos[dateToDelete];
+                return { ...prev, records: newRecords, memos: newMemos };
+            });
+            setView('dashboard');
+            handleShowAlert("刪除成功", `已刪除 ${dateToDelete} 的所有紀錄`);
+        }
+    };
+
+    const handleSaveNewAsset = (newAsset, dateKey) => {
+        setData(prev => ({ ...prev, records: { ...prev.records, [dateKey]: [...(prev.records[dateKey] || []), newAsset] } }));
+        handleShowAlert("新增成功", `資產 ${newAsset.name} 已新增到 ${dateKey}`);
+        setShowAddAssetModal(false);
+        setShowAddModal(false);
+    };
+
+    const handleSaveNewIncome = (newIncomeSource, dateKey) => {
+        setData(prev => {
+            const existingMonthData = prev.incomes[dateKey] || { totalAmount: 0, sources: [] };
+            const existingSources = existingMonthData.sources || [];
+            const newTotal = (existingMonthData.totalAmount || 0) + newIncomeSource.amount;
+            return {
+                ...prev,
+                incomes: { ...prev.incomes, [dateKey]: { ...existingMonthData, totalAmount: newTotal, sources: [...existingSources, newIncomeSource] } }
+            };
+        });
+        handleShowAlert("新增成功", `已新增一筆收入至 ${dateKey}`);
+        setShowAddIncomeModal(false);
+        setShowAddModal(false);
+    };
+
+    return (
+        <div className="min-h-screen max-w-md mx-auto bg-[#F9F9F7] text-slate-800 relative font-sans shadow-2xl overflow-hidden">
+            <GlobalStyles />
+            {alertInfo.show && <AlertModal title={alertInfo.title} message={alertInfo.message} onClose={() => setAlertInfo({ ...alertInfo, show: false })} />}
+            {showYearSelector && <YearSelectorModal currentYear={currentYear} availableYears={availableYears} yearlyTrendData={yearlyTrendData} onSelect={(year) => { setCurrentYear(year); setShowYearSelector(false); }} onClose={() => setShowYearSelector(false)} />}
+            {showAddIncomeModal && <AddIncomeModal onClose={() => setShowAddIncomeModal(false)} onSave={handleSaveNewIncome} assetNames={allAssetNames} />}
+            {showAddAssetModal && <AddAssetModal onClose={() => setShowAddAssetModal(false)} onSave={handleSaveNewAsset} historyRecords={data.records} />}
+            {view === 'detail' && selectedDate && <DetailView dateStr={selectedDate} data={data} onBack={() => setView('dashboard')} onUpdateData={handleDetailUpdate} assetNames={allAssetNames} />}
+
+            <div className={`transition-transform duration-300 ${view === 'detail' ? 'scale-95 opacity-50 pointer-events-none' : ''}`}>
+                <div className="fixed top-0 left-0 w-full h-64 bg-gradient-to-b from-[#EBEAE5] to-transparent -z-10"></div>
+                <header className="sticky top-0 z-20 px-6 py-5 bg-[#F9F9F7]/90 backdrop-blur-md border-b border-slate-200/50">
+                    <div className="flex justify-between items-end mb-4">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1"><Cat size={18} strokeWidth={1.5} className="text-teal-600" /><span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">喵喵資產</span></div>
+                            <h1 className="text-2xl font-serif-tc font-bold text-slate-800">資產總覽</h1>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleExportData} className="p-2 rounded-full hover:bg-slate-200/50 text-slate-400 hover:text-teal-600 transition-colors" title="匯出資料"><Download size={20} strokeWidth={1.5} /></button>
+                            <button onClick={() => setShowImportModal(true)} className="p-2 rounded-full hover:bg-slate-200/50 text-slate-400 hover:text-teal-600 transition-colors" title="匯入資料"><Upload size={20} strokeWidth={1.5} /></button>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                        <button onClick={() => setCurrentYear(y => y - 1)} className="p-1 text-slate-400 hover:text-slate-800 transition-colors"><ChevronLeft size={20} strokeWidth={1.5} /></button>
+                        <button onClick={() => setShowYearSelector(true)} className="text-3xl font-inter font-light tracking-tight text-slate-800 hover:text-teal-600 transition-colors px-4 py-1 rounded-lg hover:bg-slate-100">{currentYear}</button>
+                        <button 
+                            onClick={() => setCurrentYear(y => y + 1)} 
+                            disabled={currentYear >= realCurrentYear}
+                            className={`p-1 transition-colors ${currentYear >= realCurrentYear ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-800'}`}
+                        >
+                            <ChevronRight size={20} strokeWidth={1.5} />
+                        </button>
+                    </div>
+                </header>
+
+                <main className="px-6 py-6 pb-2">
+                    <section>
+                        <div className="flex items-center justify-between mb-4"><h3 className="text-sm font-serif-tc text-slate-500 font-medium">年度資產淨值</h3><span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-inter">TWD</span></div>
+                        <div className="h-28 w-full -ml-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={processedData}>
+                                    <defs><linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0D9488" stopOpacity={0.2}/><stop offset="95%" stopColor="#0D9488" stopOpacity={0}/></linearGradient></defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter'}} dy={10} />
+                                    <YAxis tickFormatter={(val) => `${val / 10000}萬`} axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter'}} width={40} />
+                                    <Tooltip content={<CustomChartTooltip />} cursor={{stroke: '#CBD5E1', strokeWidth: 1}} />
+                                    <Area type="monotone" dataKey="assets" stroke="#0F766E" strokeWidth={2} fillOpacity={1} fill="url(#colorAssets)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-8 grid grid-cols-2 gap-3">
+                            <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center transition-all hover:shadow-md hover:border-teal-100"><div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1">年度資產增長金額</div><div className={`text-lg font-inter font-medium flex items-center gap-1 ${yearlyGrowthStats.amount >= 0 ? 'text-emerald-700' : 'text-rose-500'}`}>{yearlyGrowthStats.amount > 0 ? '+' : ''}{formatWan(yearlyGrowthStats.amount)}</div></div>
+                            <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center transition-all hover:shadow-md hover:border-teal-100"><div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1">年度資產增長比例</div><div className={`text-lg font-inter font-medium flex items-center gap-1 ${yearlyGrowthStats.rate >= 0 ? 'text-emerald-700' : 'text-rose-500'}`}>{yearlyGrowthStats.rate > 0 ? '+' : ''}{formatRate(yearlyGrowthStats.rate)}</div></div>
+                        </div>
+                        <div className="mt-4 p-4 bg-slate-800 text-white rounded-xl shadow-lg relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                             <div className="relative z-10 flex justify-between items-center">
+                                 <div className="flex flex-col gap-1"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><Mountain size={12} className="text-emerald-400" /> 年度最高 ({assetExtremes.max.month}月)</span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.max.val)}</span></div>
+                                 <div className="w-px h-8 bg-slate-600 mx-2"></div>
+                                 <div className="flex flex-col gap-1 text-right"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-end gap-1">年度最低 ({assetExtremes.min.month}月) <ArrowDown size={12} className="text-rose-400" /></span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.min.val)}</span></div>
+                             </div>
+                        </div>
+                    </section>
+
+                    <section className="mt-8">
+                        <h3 className="text-sm font-serif-tc text-slate-500 font-medium mb-4 flex justify-between items-center"><span>月份明細</span><span className="text-xs text-slate-300 font-inter font-light">點擊查看明細</span></h3>
+                        <div className="space-y-0 divide-y divide-slate-100 border-t border-b border-slate-100">
+                            {processedData.map((monthData) => (
+                                <div key={monthData.month} onClick={() => handleMonthClick(monthData)} className={`group py-4 transition-colors cursor-pointer flex justify-between items-center -mx-2 px-2 rounded-lg ${monthData.latestDate ? 'hover:bg-white' : 'opacity-50 cursor-default grayscale'}`}>
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-inter font-medium text-slate-400 w-8">{String(monthData.month).padStart(2, '0')}</span>
+                                            {monthData.allRecords.length > 1 ? (<div className="flex flex-col gap-1">{monthData.allRecords.map((r, idx) => (
+                                                <div key={idx} className={`flex items-center gap-2 text-base font-inter font-normal ${monthData.latestDate ? 'text-slate-700' : 'text-slate-400'}`}>
+                                                    <AmountWithTooltip amount={r.assets} className="font-inter text-slate-700" align="left" />
+                                                    <span className="text-xs text-slate-400">({parseInt(r.dateStr.split('-')[2])}日)</span>
+                                                </div>
+                                            ))}</div>) : (<span className={`text-base font-inter font-normal ${monthData.latestDate ? 'text-slate-700' : 'text-slate-400'}`}><AmountWithTooltip amount={monthData.assets} className="font-inter text-slate-700" align="left" /></span>)}
+                                        </div>
+                                        {monthData.memo && (<div className="ml-11 mt-1 text-xs text-slate-400 font-serif-tc italic flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-slate-300"></span>{monthData.memo}</div>)}
+                                    </div>
+                                    <div className="text-right flex flex-col items-end gap-1">
+                                        {monthData.income > 0 && <div className="text-xs text-emerald-600 font-inter bg-emerald-50 px-2 py-1 rounded-md">+{formatMoney(monthData.income)}</div>}
+                                        {monthData.balance !== 0 && (
+                                            <div className={`text-[10px] font-bold flex items-center gap-1 ${monthData.balance >= 0 ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                                <PiggyBank size={10} />
+                                                {monthData.balance > 0 ? '+' : ''}{formatWan(monthData.balance)}
+                                                <div className="group/tooltip relative">
+                                                    <Info size={10} className="cursor-help text-slate-300 hover:text-slate-500 transition-colors ml-1" />
+                                                    <AnalysisTooltip 
+                                                        incomeDiff={monthData.analysis.incomeDiff} 
+                                                        assetDiff={monthData.analysis.assetDiff} 
+                                                        compositeScore={monthData.analysis.compositeScore} 
+                                                        align="right"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <footer className="text-center text-slate-300 text-[10px] py-4 mt-4 font-inter">@copyright Jet | v1.0.0</footer>
+                    </section>
+                </main>
+
+                <button onClick={() => setShowAddModal(true)} className="fixed bottom-8 right-6 w-14 h-14 bg-slate-800 text-white rounded-full shadow-lg shadow-slate-800/30 flex items-center justify-center hover:bg-slate-700 hover:scale-105 transition-all z-30 group"><Plus size={28} strokeWidth={2} className="group-hover:rotate-90 transition-transform duration-300" /></button>
+                
+                {showImportModal && (<div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-6"><div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl relative animate-[fadeIn_0.2s_ease-out]"><button onClick={() => setShowImportModal(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors"><X size={20} /></button><div className="mb-6"><div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center mb-4"><FileJson size={20} className="text-teal-600" strokeWidth={1.5} /></div><h3 className="text-xl font-serif-tc font-bold text-slate-800">匯入資料</h3><p className="text-sm text-slate-400 mt-1 font-serif-tc">請上傳您的 JSON 備份檔案</p></div><div className="relative group cursor-pointer"><input type="file" accept=".json" onChange={handleFileUpload} ref={fileInputRef} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" /><div className="w-full h-32 border border-dashed border-slate-300 rounded-lg bg-slate-50/50 group-hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-slate-400 group-hover:text-teal-600 group-hover:border-teal-300"><Upload size={20} strokeWidth={1.5} className="mb-2" /><span className="text-xs font-inter tracking-wide">點擊或拖曳檔案至此</span></div></div></div></div>)}
+                
+                {showAddModal && (
+                    <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-6">
+                        <div className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-8 shadow-2xl relative animate-[slideUp_0.3s_ease-out]">
+                            <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-serif-tc font-bold text-slate-800">新增紀錄</h3><button onClick={() => setShowAddModal(false)} className="text-slate-300 hover:text-slate-600"><X size={20} /></button></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => { setShowAddModal(false); setShowAddAssetModal(true); }} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-teal-200 hover:text-teal-700 transition-all group">
+                                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors"><Wallet size={20} strokeWidth={1.5} className="text-teal-600" /></div><span className="text-sm font-serif-tc font-bold">資產</span>
+                                </button>
+                                <button onClick={() => { setShowAddModal(false); setShowAddIncomeModal(true); }} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-teal-200 hover:text-teal-700 transition-all group">
+                                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors"><DollarSign size={20} strokeWidth={1.5} className="text-teal-600" /></div><span className="text-sm font-serif-tc font-bold">收入</span>
+                                </button>
+                                <div className="relative col-span-2 mt-2">
+                                    <input type="file" accept=".csv" ref={expenseFileInputRef} onChange={handleExpenseUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                    <button className="w-full flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-rose-200 hover:text-rose-700 transition-all group">
+                                        <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center mb-3 group-hover:bg-rose-100 transition-colors"><ShoppingBag size={20} strokeWidth={1.5} className="text-rose-600" /></div>
+                                        <span className="text-sm font-serif-tc font-bold">匯入花費 (MOZE CSV)</span><span className="text-[10px] text-slate-400 mt-1 font-inter">將覆蓋所有花費細項</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 定義全域字體變數，對應 App.jsx 中的 class */
+@layer utilities {
+  .font-serif-tc {
+    font-family: 'Noto Serif TC', serif;
+  }
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  /* 隱藏滾動條 */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+body {
+  background-color: #F9F9F7;
+  margin: 0;
+  padding: 0;
+}
