@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { Cat, ChevronLeft, ChevronRight, Plus, Upload, Wallet, TrendingUp, DollarSign, Calendar, X, Save, FileJson, ArrowUpRight, ArrowDownRight, ArrowLeft, Edit2, Trash2, Info, Check, TrendingDown, RefreshCw, FileText, Mountain, ArrowDown, AlertCircle, Building2, Lock, PieChart, Download, StickyNote, ShoppingBag, Filter, ChevronDown, PiggyBank, Activity, Sparkles } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { Cat, ChevronLeft, ChevronRight, Plus, Upload, Wallet, TrendingUp, DollarSign, Calendar, X, Save, FileJson, ArrowUpRight, ArrowDownRight, ArrowLeft, Edit2, Trash2, Info, Check, TrendingDown, RefreshCw, FileText, Mountain, ArrowDown, AlertCircle, Building2, Lock, PieChart as PieChartIcon, Download, StickyNote, ShoppingBag, Filter, ChevronDown, PiggyBank, Activity, Sparkles, LogOut, Coins } from 'lucide-react';
 
 // --- CSS 樣式與 Tailwind 設定模擬 ---
 // 原本 index.css 的內容與 tailwind.config.js 的動畫設定整合於此
 const GlobalStyles = () => (
-  <style>{`
+    <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
     body {
@@ -52,47 +52,9 @@ const DEFAULT_EXCHANGE_RATES = {
 
 // 預設模擬數據
 const INITIAL_DATA = {
-    "records": {
-        "2022-12-31": [
-            { "id": 1, "type": "fixed", "name": "永豐銀行", "amount": 250000, "currency": "TWD" },
-            { "id": 2, "type": "floating", "name": "元大證券", "amount": 100000, "currency": "TWD", "originalAmount": 100000, "exchangeRate": 1 }
-        ],
-        "2023-01-15": [
-            { "id": 3, "type": "fixed", "name": "永豐銀行", "amount": 300000, "currency": "TWD" },
-            { "id": 4, "type": "floating", "name": "元大證券", "amount": 150000, "currency": "TWD", "originalAmount": 150000, "exchangeRate": 1 }
-        ],
-        "2023-06-30": [
-            { "id": 5, "type": "fixed", "name": "永豐銀行", "amount": 350000, "currency": "TWD" },
-            { "id": 6, "type": "floating", "name": "元大證券", "amount": 180000, "currency": "TWD", "originalAmount": 5800, "exchangeRate": 31.03 }
-        ],
-        "2023-12-31": [
-            { "id": 7, "type": "fixed", "name": "永豐銀行", "amount": 400000, "currency": "TWD" },
-            { "id": 8, "type": "floating", "name": "元大證券", "amount": 200000, "currency": "TWD", "originalAmount": 6450, "exchangeRate": 31.00 }
-        ]
-    },
-    "memos": {
-        "2023-06-30": "年中獎金入帳，股市回溫",
-        "2023-12-31": "年終結算，資產配置調整"
-    },
-    "incomes": {
-        "2022-01": { 
-            "totalAmount": 40000,
-            "sources": [
-                { "company": "薪資", "bank": "永豐銀行", "currency": "TWD", "originalAmount": 40000, "exchangeRate": 1, "amount": 40000, "memo": "每月固定薪資" }
-            ]
-        },
-        "2022-12": { "totalAmount": 40000, "sources": [] },
-        "2023-01": { "totalAmount": 45000, "sources": [] },
-        "2023-02": { "totalAmount": 45000, "sources": [] },
-        "2023-03": { "totalAmount": 48000, "sources": [] },
-        "2023-06": { 
-            "totalAmount": 120000, 
-            "sources": [
-                { "company": "公司", "bank": "永豐銀行", "currency": "TWD", "originalAmount": 120000, "exchangeRate": 1, "amount": 120000, "memo": "年中績效獎金" }
-            ]
-        }, 
-        "2023-12": { "totalAmount": 90000, "sources": [] }
-    },
+    "records": {},
+    "memos": {},
+    "incomes": {},
     "expenses": {}
 };
 
@@ -278,12 +240,12 @@ const YearSelectorModal = ({ currentYear, availableYears, yearlyTrendData, onSel
                             <AreaChart data={yearlyTrendData}>
                                 <defs>
                                     <linearGradient id="colorYearly" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#0D9488" stopOpacity={0.2}/>
-                                        <stop offset="95%" stopColor="#0D9488" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#0D9488" stopOpacity={0.2} />
+                                        <stop offset="95%" stopColor="#0D9488" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter'}} dy={5} />
-                                <Tooltip content={<CustomChartTooltip />} cursor={{stroke: '#CBD5E1', strokeWidth: 1}} />
+                                <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter' }} dy={5} />
+                                <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1 }} />
                                 <Area type="monotone" dataKey="assets" stroke="#0F766E" strokeWidth={2} fillOpacity={1} fill="url(#colorYearly)" />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -293,18 +255,16 @@ const YearSelectorModal = ({ currentYear, availableYears, yearlyTrendData, onSel
                         尚無資產趨勢資料
                     </div>
                 )}
-                <div className="grid grid-cols-3 gap-3 max-h-[300px] overflow-y-auto hide-scrollbar">
+                <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto hide-scrollbar">
                     {availableYears.length > 0 ? availableYears.map(year => (
                         <button
                             key={year}
                             onClick={() => onSelect(year)}
-                            className={`py-2 px-1 rounded-xl text-sm font-bold font-inter transition-all ${
-                                year === currentYear 
-                                ? 'bg-teal-600 text-white shadow-md shadow-teal-200' 
-                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                            }`}
+                            className={`w-full py-3 px-4 rounded-xl text-lg font-inter flex justify-between items-center transition-all ${currentYear === year ? 'bg-teal-50 text-teal-700 font-bold shadow-sm border border-teal-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                                }`}
                         >
-                            {year}
+                            <span>{year}</span>
+                            {currentYear === year && <Check size={18} />}
                         </button>
                     )) : (
                         <div className="col-span-3 text-center text-slate-400 text-sm py-2">無可用年份</div>
@@ -321,7 +281,7 @@ const handleProcessExpenseCSV = (file, onSuccess, onError) => {
         try {
             const csvText = e.target.result;
             const rows = parseCSV(csvText);
-            
+
             if (rows.length === 0) throw new Error("CSV 檔案是空的");
 
             const headers = rows[0];
@@ -340,13 +300,13 @@ const handleProcessExpenseCSV = (file, onSuccess, onError) => {
 
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (row.length < headers.length) continue; 
+                if (row.length < headers.length) continue;
                 if (idxType !== -1 && row[idxType] !== '支出') continue;
 
-                const dateStr = row[idxDate]; 
+                const dateStr = row[idxDate];
                 const dateParts = dateStr.split('/');
                 if (dateParts.length !== 3) continue;
-                
+
                 const y = dateParts[0];
                 const m = dateParts[1].padStart(2, '0');
                 const d = dateParts[2].padStart(2, '0');
@@ -354,7 +314,7 @@ const handleProcessExpenseCSV = (file, onSuccess, onError) => {
                 const monthKey = `${y}-${m}`;
 
                 let amountStr = row[idxAmount];
-                amountStr = amountStr.replace(/,/g, '').replace(/-/g, ''); 
+                amountStr = amountStr.replace(/,/g, '').replace(/-/g, '');
                 const rawAmount = parseFloat(amountStr);
 
                 if (isNaN(rawAmount)) continue;
@@ -389,7 +349,7 @@ const handleProcessExpenseCSV = (file, onSuccess, onError) => {
 const AddIncomeModal = ({ onClose, onSave, assetNames }) => {
     const today = new Date();
     const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-    
+
     const [date, setDate] = useState(currentMonthStr);
     const [company, setCompany] = useState("");
     const [bank, setBank] = useState("");
@@ -427,7 +387,7 @@ const AddIncomeModal = ({ onClose, onSave, assetNames }) => {
 
         const newIncomeSource = {
             company,
-            bank, 
+            bank,
             currency,
             originalAmount: Number(originalAmount) || Number(amount),
             exchangeRate: Number(exchangeRate),
@@ -513,7 +473,7 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     const [date, setDate] = useState(todayStr);
-    const [type, setType] = useState('fixed'); 
+    const [type, setType] = useState('fixed');
     const [name, setName] = useState('');
     const [currency, setCurrency] = useState('TWD');
     const [exchangeRate, setExchangeRate] = useState('1');
@@ -534,14 +494,14 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
         const selectedName = e.target.value;
         setName(selectedName);
         let found = null;
-        const allDates = Object.keys(historyRecords).sort().reverse(); 
+        const allDates = Object.keys(historyRecords).sort().reverse();
         for (const d of allDates) {
             const record = historyRecords[d].find(r => r.name === selectedName);
             if (record) { found = record; break; }
         }
         if (found && found.type === type) {
-             setCurrency(found.currency || 'TWD');
-             if (found.exchangeRate) setExchangeRate(String(found.exchangeRate));
+            setCurrency(found.currency || 'TWD');
+            if (found.exchangeRate) setExchangeRate(String(found.exchangeRate));
         }
     };
 
@@ -552,7 +512,7 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
         const dates = Object.keys(historyRecords)
             .filter(d => new Date(d).getTime() < currentTimestamp) // 找出比選擇日期更早的日期
             .sort((a, b) => new Date(b) - new Date(a)); // 降序排列，取最近的
-        
+
         if (dates.length === 0) return [];
         return historyRecords[dates[0]]; // 回傳該日期的所有資產
     }, [date, historyRecords]);
@@ -563,7 +523,7 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
         if (currency === 'TWD') return;
         setIsFetchingRate(true);
         setTimeout(() => {
-            const mockRates = DEFAULT_EXCHANGE_RATES; 
+            const mockRates = DEFAULT_EXCHANGE_RATES;
             const rate = mockRates[currency] || (Math.random() * 30 + 1).toFixed(2);
             setExchangeRate(String(rate));
             setIsFetchingRate(false);
@@ -577,7 +537,7 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
     useEffect(() => {
         if (currency !== 'TWD' && originalAmount && exchangeRate) {
             const val = parseFloat(originalAmount) * parseFloat(exchangeRate);
-            setAmount(val.toFixed(0)); 
+            setAmount(val.toFixed(0));
         } else if (currency === 'TWD') {
             setAmount(originalAmount);
         }
@@ -612,7 +572,7 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
             originalAmount: Number(originalAmount) || Number(amount),
             exchangeRate: Number(exchangeRate)
         };
-        onSave(newAsset, date); 
+        onSave(newAsset, date);
     };
 
     return (
@@ -671,7 +631,7 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-xs text-slate-400 font-bold mb-1 block ml-1">幣值</label>
-                            <select value={currency} onChange={(e) => { setCurrency(e.target.value); if(e.target.value==='TWD') setExchangeRate('1'); }} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm appearance-none">
+                            <select value={currency} onChange={(e) => { setCurrency(e.target.value); if (e.target.value === 'TWD') setExchangeRate('1'); }} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-slate-50 text-sm appearance-none">
                                 <option value="TWD">TWD (台幣)</option>
                                 <option value="USD">USD (美金)</option>
                                 <option value="JPY">JPY (日圓)</option>
@@ -714,14 +674,14 @@ const AddAssetModal = ({ onClose, onSave, historyRecords }) => {
 
 const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [activeTab, setActiveTab] = useState('assets'); 
+    const [activeTab, setActiveTab] = useState('assets');
     const [localAssets, setLocalAssets] = useState([]);
-    const [localMemo, setLocalMemo] = useState(""); 
-    const [localIncomes, setLocalIncomes] = useState([]); 
-    const [expenseFilter, setExpenseFilter] = useState("all"); 
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null); 
-    const [confirmDeleteDate, setConfirmDeleteDate] = useState(false); 
-    
+    const [localMemo, setLocalMemo] = useState("");
+    const [localIncomes, setLocalIncomes] = useState([]);
+    const [expenseFilter, setExpenseFilter] = useState("all");
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [confirmDeleteDate, setConfirmDeleteDate] = useState(false);
+
     useEffect(() => {
         if (data.records[dateStr]) {
             const assets = data.records[dateStr].map((item, idx) => ({ ...item, id: item.id || `legacy-${Date.now()}-${idx}` }));
@@ -729,7 +689,7 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
         } else {
             setLocalAssets([]);
         }
-        let memoContent = data.memos[dateStr] || ""; 
+        let memoContent = data.memos[dateStr] || "";
         setLocalMemo(memoContent);
         const yearMonth = dateStr.substring(0, 7);
         const incomes = data.incomes[yearMonth]?.sources || [];
@@ -740,12 +700,12 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
         const allDates = new Set(Object.keys(data.records));
         Object.keys(data.memos || {}).forEach(d => allDates.add(d));
         Object.keys(data.incomes || {}).forEach(monthStr => {
-             const hasDateInMonth = Array.from(allDates).some(d => d.startsWith(monthStr));
-             if (!hasDateInMonth) allDates.add(`${monthStr}-01`);
+            const hasDateInMonth = Array.from(allDates).some(d => d.startsWith(monthStr));
+            if (!hasDateInMonth) allDates.add(`${monthStr}-01`);
         });
         Object.keys(data.expenses || {}).forEach(monthStr => {
             const hasDateInMonth = Array.from(allDates).some(d => d.startsWith(monthStr));
-            if(!hasDateInMonth) allDates.add(`${monthStr}-01`);
+            if (!hasDateInMonth) allDates.add(`${monthStr}-01`);
         });
         return Array.from(allDates).sort();
     }, [data]);
@@ -787,7 +747,7 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
         const investmentRate = totalAssets > 0 ? floatingAssets / totalAssets : 0;
         const monthlyIncome = localIncomes.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
         const monthlyCost = currentMonthExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-        
+
         const incomeDiff = monthlyIncome - prevMonthIncome;
         const assetDiff = totalAssets - prevTotalAssets;
         const compositeScore = incomeDiff + assetDiff;
@@ -805,9 +765,22 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
         return Array.from(accounts).sort();
     }, [currentMonthExpenses]);
 
+    const expenseChartData = useMemo(() => {
+        const categoryMap = {};
+        currentMonthExpenses.forEach(ex => {
+            const cat = ex.category || '其他';
+            if (!categoryMap[cat]) categoryMap[cat] = { name: cat, value: 0, items: [] };
+            categoryMap[cat].value += ex.amount;
+            categoryMap[cat].items.push(ex);
+        });
+        return Object.values(categoryMap).sort((a, b) => b.value - a.value);
+    }, [currentMonthExpenses]);
+
+    const COLORS = ['#0D9488', '#059669', '#10B981', '#34D399', '#6EE7B7', '#A7F3D0', '#D1FAE5'];
+
     const handleNavigate = (targetDate) => { if (targetDate) onUpdateData('NAVIGATE_DATE', targetDate); };
     const handleAssetChange = (id, field, value) => setLocalAssets(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
-    
+
     const handleIncomeChange = (idx, field, value) => {
         setLocalIncomes(prev => prev.map((item, i) => {
             if (i !== idx) return item;
@@ -825,13 +798,13 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
             return updated;
         }));
     };
-    
+
     const handleDeleteIncome = (idx) => setLocalIncomes(prev => prev.filter((_, i) => i !== idx));
     const handleDeleteClick = (e, id) => { e.stopPropagation(); e.preventDefault(); setConfirmDeleteId(id); };
-    const confirmDeleteAsset = () => { if (confirmDeleteId) { setLocalAssets(prev => prev.filter(item => item.id !== confirmDeleteId)); setConfirmDeleteId(null); }};
+    const confirmDeleteAsset = () => { if (confirmDeleteId) { setLocalAssets(prev => prev.filter(item => item.id !== confirmDeleteId)); setConfirmDeleteId(null); } };
     const handleDeleteDay = () => setConfirmDeleteDate(true);
     const executeDeleteDay = () => onUpdateData('DELETE_DATE', dateStr);
-    
+
     const handleSave = () => {
         onUpdateData('UPDATE_RECORDS', { date: dateStr, assets: localAssets });
         onUpdateData('UPDATE_MEMO', { date: dateStr, content: localMemo });
@@ -904,7 +877,7 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
                         </div>
 
                         <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm flex flex-col items-center justify-center text-center">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1 flex items-center gap-1">投資占比 <PieChart size={12} /></div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1 flex items-center gap-1">投資占比 <PieChartIcon size={12} /></div>
                             <div className="text-lg font-inter font-bold text-teal-600">{formatRate(stats.investmentRate)}</div>
                         </div>
                     </div>
@@ -916,7 +889,7 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
                             <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><Wallet size={16} /> 固定資產</h3>
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                                 {fixedAssets.map((asset, idx) => (
-                                    <div key={asset.id} className={`p-4 flex items-center justify-between ${idx !== fixedAssets.length -1 ? 'border-b border-slate-100' : ''}`}>
+                                    <div key={asset.id} className={`p-4 flex items-center justify-between ${idx !== fixedAssets.length - 1 ? 'border-b border-slate-100' : ''}`}>
                                         {isEditing ? (
                                             <div className="flex-1 flex gap-2 items-center animate-[fadeIn_0.2s]">
                                                 <input type="text" value={asset.name || ''} onChange={(e) => handleAssetChange(asset.id, 'name', e.target.value)} className="w-1/3 p-2 border border-slate-200 rounded-lg focus:border-slate-800 outline-none bg-slate-50 text-sm font-serif-tc" placeholder="名稱" />
@@ -938,7 +911,7 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
                             <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><TrendingUp size={16} /> 浮動資產 (投資)</h3>
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                                 {floatingAssets.map((asset, idx) => (
-                                    <div key={asset.id} className={`p-4 flex items-center justify-between relative ${idx !== floatingAssets.length -1 ? 'border-b border-slate-100' : ''}`}>
+                                    <div key={asset.id} className={`p-4 flex items-center justify-between relative ${idx !== floatingAssets.length - 1 ? 'border-b border-slate-100' : ''}`}>
                                         {isEditing ? (
                                             <div className="flex-1 flex gap-2 items-center animate-[fadeIn_0.2s]">
                                                 <input type="text" value={asset.name || ''} onChange={(e) => handleAssetChange(asset.id, 'name', e.target.value)} className="w-1/3 p-2 border border-slate-200 rounded-lg focus:border-slate-800 outline-none bg-slate-50 text-sm font-serif-tc" placeholder="名稱" />
@@ -1043,6 +1016,32 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
                             </div>
                         </div>
 
+                        {expenseChartData.length > 0 && expenseFilter === 'all' && (
+                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col items-center">
+                                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-2">消費分類佔比</div>
+                                <div className="h-48 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={expenseChartData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={40}
+                                                outerRadius={70}
+                                                paddingAngle={2}
+                                                dataKey="value"
+                                            >
+                                                {expenseChartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomPieTooltip total={stats.monthlyCost} />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                             {filteredExpenses.length > 0 ? (
                                 <div className="divide-y divide-slate-100">
@@ -1077,17 +1076,136 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
     );
 };
 
-export default function App() {
+import { AuthProvider, useAuth } from './AuthContext';
+import LoginPage from './LoginPage';
+import { db } from './firebase';
+import { collection, doc, writeBatch, getDocs, query, orderBy, where, setDoc } from 'firebase/firestore';
+
+const AuthenticatedApp = () => {
+    const { user, loading, logout } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#F9F9F7]">
+                <div className="w-8 h-8 border-4 border-slate-200 border-t-teal-600 rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (!user) return <LoginPage />;
+
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
     const [data, setData] = useState(INITIAL_DATA);
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    // --- Helper Functions for Chunking ---
+    // --- Helper Functions for Chunking ---
+    const saveToFirestoreChunks = async (userData) => {
+        if (!user) return;
+        const jsonString = JSON.stringify(userData);
+        // Reduced chunk size to avoid 1MB limit with multi-byte chars
+        const CHUNK_SIZE = 250000;
+        const totalChunks = Math.ceil(jsonString.length / CHUNK_SIZE);
+
+        const chunksRef = collection(db, "users", user.uid, "chunks");
+
+        // 1. Write new chunks sequentially for progress updates
+        for (let i = 0; i < totalChunks; i++) {
+            const chunkContent = jsonString.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+            const docRef = doc(chunksRef, i.toString());
+            // Use setDoc directly instead of batch to update progress in real-time
+            await setDoc(docRef, { index: i, content: chunkContent });
+
+            // Update progress
+            setUploadProgress(Math.round(((i + 1) / totalChunks) * 100));
+        }
+
+        // 2. Delete excess chunks (if previous save had more)
+        const batch = writeBatch(db); // Use batch for deletion as it's fast and doesn't need progress
+        const q = query(chunksRef, where("index", ">=", totalChunks));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            snapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+        }
+    };
+
+    const loadFromFirestoreChunks = async () => {
+        if (!user) return null;
+        const chunksRef = collection(db, "users", user.uid, "chunks");
+        const q = query(chunksRef, orderBy("index"));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) return null;
+
+        let fullString = "";
+        snapshot.forEach(doc => {
+            fullString += doc.data().content;
+        });
+
+        return JSON.parse(fullString);
+    };
+
+    // --- Sync Logic ---
+    // 1. Load Data on Mount
+    useEffect(() => {
+        const loadUserData = async () => {
+            if (!user) return;
+            try {
+                const cloudData = await loadFromFirestoreChunks();
+                if (cloudData) {
+                    console.log("Loaded data from Firestore chunks");
+                    setData(cloudData);
+                } else {
+                    console.log("No chunked data found, using empty state.");
+                    // Fallback: check if legacy single-doc exists (optional migration)
+                }
+            } catch (error) {
+                console.error("Error loading chunked data:", error);
+            } finally {
+                setIsDataLoaded(true);
+            }
+        };
+        loadUserData();
+    }, [user]);
+
+    // 2. Auto-Save Logic (Debounced)
+    useEffect(() => {
+        if (!user || !isDataLoaded) return;
+
+        const saveData = async () => {
+            setIsSaving(true);
+            try {
+                await saveToFirestoreChunks(data);
+                console.log("Data saved to Firestore chunks");
+            } catch (error) {
+                console.error("Error saving chunks: ", error);
+            } finally {
+                setTimeout(() => {
+                    setIsSaving(false);
+                    setUploadProgress(0);
+                }, 500);
+            }
+        };
+
+        const timeoutId = setTimeout(saveData, 2000);
+
+        return () => clearTimeout(timeoutId);
+    }, [data, user, isDataLoaded]);
+
     const [showImportModal, setShowImportModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showAddAssetModal, setShowAddAssetModal] = useState(false);
     const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
     const [showYearSelector, setShowYearSelector] = useState(false);
-    
-    const fileInputRef = useRef(null); 
-    const expenseFileInputRef = useRef(null); 
+
+    const fileInputRef = useRef(null);
+    const expenseFileInputRef = useRef(null);
     const [alertInfo, setAlertInfo] = useState({ show: false, title: '', message: '' });
     const [view, setView] = useState('dashboard');
     const [selectedDate, setSelectedDate] = useState(null);
@@ -1105,7 +1223,7 @@ export default function App() {
         Object.keys(data.incomes || {}).forEach(d => years.add(parseInt(d.split('-')[0])));
         Object.keys(data.memos || {}).forEach(d => years.add(new Date(d).getFullYear()));
         Object.keys(data.expenses || {}).forEach(d => years.add(parseInt(d.split('-')[0])));
-        
+
         const thisYear = new Date().getFullYear();
         return Array.from(years).filter(y => y <= thisYear).sort((a, b) => b - a);
     }, [data]);
@@ -1127,8 +1245,8 @@ export default function App() {
 
     const yearlyTrendData = useMemo(() => {
         return availableYears.map(year => {
-             return { year, assets: getYearEndAssets(year, data) };
-        }).sort((a,b) => a.year - b.year);
+            return { year, assets: getYearEndAssets(year, data) };
+        }).sort((a, b) => a.year - b.year);
     }, [availableYears, data]);
 
     const getYearTotalIncome = (year, sourceData) => {
@@ -1156,7 +1274,7 @@ export default function App() {
     const processedData = useMemo(() => {
         const monthlyStats = Array(12).fill(0).map((_, i) => ({ month: i + 1, assets: 0, income: 0, cost: 0, balance: 0, memo: null, hasRecord: false, latestDate: null, allRecords: [], analysis: { incomeDiff: 0, assetDiff: 0, compositeScore: 0 } }));
         const monthRecordsMap = new Map();
-        
+
         Object.entries(data.records || {}).forEach(([dateStr, assets]) => {
             const date = new Date(dateStr);
             if (date.getFullYear() === currentYear) {
@@ -1190,7 +1308,7 @@ export default function App() {
                 if (!monthlyStats[monthIdx].latestDate) monthlyStats[monthIdx].latestDate = `${dateStr}-01`;
             }
         });
-        
+
         Object.keys(data.expenses || {}).forEach(monthStr => {
             const [yStr, mStr] = monthStr.split('-');
             if (parseInt(yStr) === currentYear) {
@@ -1219,7 +1337,7 @@ export default function App() {
             const currentAsset = monthlyStats[i].assets;
             const currentIncome = monthlyStats[i].income;
             const cost = monthlyStats[i].cost || 0;
-            
+
             // 計算餘額 (原本的邏輯)
             monthlyStats[i].balance = (currentAsset - prevAsset) - cost;
 
@@ -1232,7 +1350,7 @@ export default function App() {
             prevAsset = currentAsset;
             prevIncome = currentIncome; // 更新比較基準為本月收入
         }
-        
+
         return monthlyStats;
     }, [data, currentYear]);
 
@@ -1248,14 +1366,51 @@ export default function App() {
     }, [processedData]);
 
     const yearStats = useMemo(() => {
+        // Income Stats
         const thisYearIncome = getYearTotalIncome(currentYear, data);
         const lastYearIncome = getYearTotalIncome(currentYear - 1, data);
         const avgIncome = thisYearIncome / 12;
-        const assetGrowthMetric = lastYearIncome > 0 ? (thisYearIncome / lastYearIncome) * 100 : 0; 
+
+        // "資產年增長" (User definition: This Year Income / Last Year Income %)
+        // Using "assetGrowthRate" variable to keep UI binding consistent, but logic is Income Ratio
+        const assetGrowthRate = lastYearIncome > 0 ? (thisYearIncome / lastYearIncome) : 0;
+
+        // "總所得%數" (User definition: This Year Income / Total Accumulated Income %)
+        // Calculate Total Accumulated Income (Lifetime)
         const totalAccumulatedIncome = Object.values(data.incomes || {}).reduce((sum, item) => sum + (item.totalAmount || 0), 0);
-        const totalIncomeMetric = totalAccumulatedIncome > 0 ? (thisYearIncome / totalAccumulatedIncome) * 100 : 0;
-        return { totalIncome: thisYearIncome, avgIncome, assetGrowthMetric, totalIncomeMetric, totalAccumulatedIncome };
+        const incomeGrowthRate = totalAccumulatedIncome > 0 ? (thisYearIncome / totalAccumulatedIncome) : 0;
+
+        // Real Asset Stats (Restored for new requirement)
+        const thisYearAssets = getYearEndAssets(currentYear, data);
+        const lastYearAssets = getYearEndAssets(currentYear - 1, data);
+        const realAssetGrowthAmount = thisYearAssets - lastYearAssets;
+        const realAssetGrowthPercentage = lastYearAssets > 0 ? (realAssetGrowthAmount / lastYearAssets) : 0;
+        const assetGrowthRatio = lastYearAssets > 0 ? (thisYearAssets / lastYearAssets) : 0;
+
+        return {
+            totalIncome: thisYearIncome,
+            lastYearIncome,
+            avgIncome,
+            assetGrowthRate, // Income Ratio
+            incomeGrowthRate, // Share of Total Ratio
+            totalAccumulatedIncome,
+            thisYearAssets,
+            lastYearAssets,
+            realAssetGrowthAmount,
+            realAssetGrowthPercentage,
+            assetGrowthRatio
+        };
     }, [data, currentYear]);
+
+    // Show loading if data is fetching to prevent overwriting cloud data with initial local state
+    if (!isDataLoaded) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#F9F9F7] flex-col gap-4">
+                <div className="w-8 h-8 border-4 border-slate-200 border-t-teal-600 rounded-full animate-spin"></div>
+                <p className="text-slate-500 text-sm font-bold animate-pulse">正在同步雲端資料...</p>
+            </div>
+        );
+    }
 
     const handleShowAlert = (title, message) => setAlertInfo({ show: true, title, message });
 
@@ -1277,17 +1432,36 @@ export default function App() {
     const handleFileUpload = (event) => {
         const file = event.target.files[0];
         if (!file) return;
+
+        // Show loading state immediately
+        setIsImporting(true);
+
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const parsed = JSON.parse(e.target.result);
                 if (!parsed.records) throw new Error("缺少 records 欄位");
+
+                // 1. Save to Cloud First (Blocking)
+                if (user) {
+                    await saveToFirestoreChunks(parsed);
+                }
+
+                // 2. Update Local State
                 setData(parsed);
                 setCurrentYear(new Date().getFullYear());
+
+                // 3. Close Modal & Reset
                 setShowImportModal(false);
                 if (fileInputRef.current) fileInputRef.current.value = "";
-                handleShowAlert("匯入成功", "資料已成功更新");
-            } catch (err) { console.error(err); handleShowAlert("格式錯誤", "請確認 JSON 格式是否正確"); }
+                handleShowAlert("匯入成功", "資料已同步至雲端");
+            } catch (err) {
+                console.error(err);
+                handleShowAlert("匯入失敗", "格式錯誤或網路連線問題");
+            } finally {
+                setIsImporting(false);
+                setUploadProgress(0);
+            }
         };
         reader.readAsText(file);
     };
@@ -1307,7 +1481,7 @@ export default function App() {
     };
 
     const handleMonthClick = (monthData) => { if (monthData.latestDate) { setSelectedDate(monthData.latestDate); setView('detail'); } };
-    
+
     const handleDetailUpdate = (type, payload) => {
         if (type === 'NAVIGATE_DATE') setSelectedDate(payload);
         else if (type === 'UPDATE_RECORDS') {
@@ -1368,30 +1542,50 @@ export default function App() {
             {showYearSelector && <YearSelectorModal currentYear={currentYear} availableYears={availableYears} yearlyTrendData={yearlyTrendData} onSelect={(year) => { setCurrentYear(year); setShowYearSelector(false); }} onClose={() => setShowYearSelector(false)} />}
             {showAddIncomeModal && <AddIncomeModal onClose={() => setShowAddIncomeModal(false)} onSave={handleSaveNewIncome} assetNames={allAssetNames} />}
             {showAddAssetModal && <AddAssetModal onClose={() => setShowAddAssetModal(false)} onSave={handleSaveNewAsset} historyRecords={data.records} />}
-            {view === 'detail' && selectedDate && <DetailView dateStr={selectedDate} data={data} onBack={() => setView('dashboard')} onUpdateData={handleDetailUpdate} assetNames={allAssetNames} />}
-
-            <div className={`transition-transform duration-300 ${view === 'detail' ? 'scale-95 opacity-50 pointer-events-none' : ''}`}>
+            {view === 'detail' && selectedDate && (
+                <div className="w-full max-w-md mx-auto">
+                    <DetailView dateStr={selectedDate} data={data} onBack={() => setView('dashboard')} onUpdateData={handleDetailUpdate} assetNames={allAssetNames} />
+                </div>
+            )}
+            <div className={`transition-transform duration-300 w-full max-w-md mx-auto ${view === 'detail' ? 'scale-95 opacity-50 pointer-events-none hidden' : ''}`}>
                 <div className="fixed top-0 left-0 w-full h-64 bg-gradient-to-b from-[#EBEAE5] to-transparent -z-10"></div>
                 <header className="sticky top-0 z-20 px-6 py-5 bg-[#F9F9F7]/90 backdrop-blur-md border-b border-slate-200/50">
                     <div className="flex justify-between items-end mb-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1"><Cat size={18} strokeWidth={1.5} className="text-teal-600" /><span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">喵喵資產</span></div>
-                            <h1 className="text-2xl font-serif-tc font-bold text-slate-800">資產總覽</h1>
+                            <h1 className="text-2xl font-serif-tc font-bold text-slate-800 flex items-center gap-2">
+                                資產總覽
+                                {isSaving && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-full animate-pulse border border-slate-200">儲存中...</span>}
+                            </h1>
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={handleExportData} className="p-2 rounded-full hover:bg-slate-200/50 text-slate-400 hover:text-teal-600 transition-colors" title="匯出資料"><Download size={20} strokeWidth={1.5} /></button>
-                            <button onClick={() => setShowImportModal(true)} className="p-2 rounded-full hover:bg-slate-200/50 text-slate-400 hover:text-teal-600 transition-colors" title="匯入資料"><Upload size={20} strokeWidth={1.5} /></button>
+                            {/* User Avatar & Logout */}
+                            <div className="relative group/user z-50">
+                                <img src={user.photoURL || "https://ui-avatars.com/api/?name=User"} alt="User" className="w-9 h-9 rounded-full border border-slate-200 shadow-sm cursor-pointer" />
+                                <div className="absolute top-10 right-0 w-32 bg-white rounded-xl shadow-xl border border-slate-100 p-1 opacity-0 group-hover/user:opacity-100 transition-all pointer-events-none group-hover/user:pointer-events-auto transform origin-top-right scale-95 group-hover/user:scale-100">
+                                    <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                                        <p className="text-xs font-bold text-slate-700 truncate">{user.displayName}</p>
+                                        <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+                                    </div>
+                                    <button
+                                        onClick={logout}
+                                        className="w-full text-left text-xs px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-lg font-bold transition-colors flex items-center gap-2"
+                                    >
+                                        <LogOut size={12} /> 登出
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                        <button onClick={() => setCurrentYear(y => y - 1)} className="p-1 text-slate-400 hover:text-slate-800 transition-colors"><ChevronLeft size={20} strokeWidth={1.5} /></button>
-                        <button onClick={() => setShowYearSelector(true)} className="text-3xl font-inter font-light tracking-tight text-slate-800 hover:text-teal-600 transition-colors px-4 py-1 rounded-lg hover:bg-slate-100">{currentYear}</button>
-                        <button 
-                            onClick={() => setCurrentYear(y => y + 1)} 
+                    <div className="flex items-center justify-between mt-4">
+                        <button onClick={() => setCurrentYear(y => y - 1)} className="p-2 text-slate-400 hover:text-slate-800 transition-colors"><ChevronLeft size={24} strokeWidth={1.5} /></button>
+                        <button onClick={() => setShowYearSelector(true)} className="text-3xl font-inter font-light tracking-tight text-slate-800 hover:text-teal-600 transition-colors px-4 py-1 rounded-lg hover:bg-slate-100 flex-1 text-center">{currentYear}</button>
+                        <button
+                            onClick={() => setCurrentYear(y => y + 1)}
                             disabled={currentYear >= realCurrentYear}
-                            className={`p-1 transition-colors ${currentYear >= realCurrentYear ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-800'}`}
+                            className={`p-2 transition-colors ${currentYear >= realCurrentYear ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-800'}`}
                         >
-                            <ChevronRight size={20} strokeWidth={1.5} />
+                            <ChevronRight size={24} strokeWidth={1.5} />
                         </button>
                     </div>
                 </header>
@@ -1402,30 +1596,112 @@ export default function App() {
                         <div className="h-28 w-full -ml-2">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={processedData}>
-                                    <defs><linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0D9488" stopOpacity={0.2}/><stop offset="95%" stopColor="#0D9488" stopOpacity={0}/></linearGradient></defs>
+                                    <defs><linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0D9488" stopOpacity={0.2} /><stop offset="95%" stopColor="#0D9488" stopOpacity={0} /></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter'}} dy={10} />
-                                    <YAxis tickFormatter={(val) => `${val / 10000}萬`} axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter'}} width={40} />
-                                    <Tooltip content={<CustomChartTooltip />} cursor={{stroke: '#CBD5E1', strokeWidth: 1}} />
+                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter' }} dy={10} />
+                                    <YAxis tickFormatter={(val) => `${val / 10000}萬`} axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter' }} width={40} />
+                                    <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1 }} />
                                     <Area type="monotone" dataKey="assets" stroke="#0F766E" strokeWidth={2} fillOpacity={1} fill="url(#colorAssets)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                         <div className="mt-8 grid grid-cols-2 gap-3">
-                            <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center transition-all hover:shadow-md hover:border-teal-100"><div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1">年度資產增長金額</div><div className={`text-lg font-inter font-medium flex items-center gap-1 ${yearlyGrowthStats.amount >= 0 ? 'text-emerald-700' : 'text-rose-500'}`}>{yearlyGrowthStats.amount > 0 ? '+' : ''}{formatWan(yearlyGrowthStats.amount)}</div></div>
-                            <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center transition-all hover:shadow-md hover:border-teal-100"><div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-1">年度資產增長比例</div><div className={`text-lg font-inter font-medium flex items-center gap-1 ${yearlyGrowthStats.rate >= 0 ? 'text-emerald-700' : 'text-rose-500'}`}>{yearlyGrowthStats.rate > 0 ? '+' : ''}{formatRate(yearlyGrowthStats.rate)}</div></div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group/tooltip z-10">
+                                <span className="text-xs text-slate-400 font-inter mb-1 block flex items-center gap-1 cursor-help">
+                                    年度資產增長金額 <Info size={12} />
+                                </span>
+                                <span className={`text-2xl font-inter font-bold ${yearStats.realAssetGrowthAmount >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                    {yearStats.realAssetGrowthAmount > 0 ? '+' : ''}{formatWan(yearStats.realAssetGrowthAmount)}
+                                </span>
+                                <div className="absolute bottom-full left-0 mb-2 w-48 bg-slate-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl z-20">
+                                    <div className="font-bold border-b border-slate-600 pb-1 mb-1">計算明細</div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">今年資產:</span><span className="font-inter">{formatWan(yearStats.thisYearAssets)}</span></div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">去年資產:</span><span className="font-inter">{formatWan(yearStats.lastYearAssets)}</span></div>
+                                    <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-600">公式: 今年度資產 - 去年度資產</div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group/tooltip z-10">
+                                <span className="text-xs text-slate-400 font-inter mb-1 block flex items-center gap-1 cursor-help">
+                                    年度資產增長比例 <Info size={12} />
+                                </span>
+                                <span className="text-2xl font-inter font-bold text-emerald-600">
+                                    {formatRate(yearStats.assetGrowthRatio)}
+                                </span>
+                                <div className="absolute bottom-full right-0 mb-2 w-48 bg-slate-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl z-20">
+                                    <div className="font-bold border-b border-slate-600 pb-1 mb-1">計算明細</div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">今年資產:</span><span className="font-inter">{formatWan(yearStats.thisYearAssets)}</span></div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">去年資產:</span><span className="font-inter">{formatWan(yearStats.lastYearAssets)}</span></div>
+                                    <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-600">公式: 今年度資產 / 去年度資產</div>
+                                </div>
+                            </div>
                         </div>
                         <div className="mt-4 p-4 bg-slate-800 text-white rounded-xl shadow-lg relative overflow-hidden">
-                             <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                             <div className="relative z-10 flex justify-between items-center">
-                                 <div className="flex flex-col gap-1"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><Mountain size={12} className="text-emerald-400" /> 年度最高 ({assetExtremes.max.month}月)</span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.max.val)}</span></div>
-                                 <div className="w-px h-8 bg-slate-600 mx-2"></div>
-                                 <div className="flex flex-col gap-1 text-right"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-end gap-1">年度最低 ({assetExtremes.min.month}月) <ArrowDown size={12} className="text-rose-400" /></span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.min.val)}</span></div>
-                             </div>
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                            <div className="relative z-10 flex justify-between items-center px-4">
+                                <div className="flex flex-col gap-1"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><Mountain size={12} className="text-emerald-400" /> 年度最高 ({assetExtremes.max.month}月)</span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.max.val)}</span></div>
+                                <div className="w-px h-8 bg-slate-600 mx-2"></div>
+                                <div className="flex flex-col gap-1 text-right"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-end gap-1">年度最低 ({assetExtremes.min.month}月) <ArrowDown size={12} className="text-rose-400" /></span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.min.val)}</span></div>
+                            </div>
                         </div>
                     </section>
 
                     <section className="mt-8">
+                        {/* New Annual Stats Section */}
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center relative group/tooltip z-10">
+                                <span className="text-[10px] text-slate-400 font-inter mb-1 flex items-center gap-1 cursor-help">
+                                    年總和 <Info size={10} />
+                                </span>
+                                <span className="text-sm font-bold font-inter text-slate-700">{formatWan(yearStats.totalIncome)}</span>
+                                <div className="absolute bottom-full mb-2 w-48 bg-slate-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl">
+                                    <div className="font-bold border-b border-slate-600 pb-1 mb-1">計算明細</div>
+                                    <div className="flex justify-between"><span>本年度總收入</span></div>
+                                    <div className="font-inter text-emerald-400 mt-1 text-right">{formatMoney(yearStats.totalIncome)}</div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center relative group/tooltip z-10">
+                                <span className="text-[10px] text-slate-400 font-inter mb-1 flex items-center gap-1 cursor-help">
+                                    年平均 <Info size={10} />
+                                </span>
+                                <span className="text-sm font-bold font-inter text-slate-700">{formatWan(yearStats.avgIncome)}</span>
+                                <div className="absolute bottom-full mb-2 w-48 bg-slate-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl">
+                                    <div className="font-bold border-b border-slate-600 pb-1 mb-1">計算明細</div>
+                                    <div className="flex justify-between mb-1"><span>年總和</span><span className="font-inter">{formatWan(yearStats.totalIncome)}</span></div>
+                                    <div className="flex justify-between border-t border-slate-600 pt-1"><span>除以 12 個月</span></div>
+                                    <div className="font-inter text-emerald-400 mt-1 text-right">= {formatMoney(yearStats.avgIncome)} / 月</div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center relative group/tooltip z-10">
+                                <span className="text-[10px] text-slate-400 font-inter mb-1 flex items-center gap-1 cursor-help">
+                                    收入年增長 <Info size={10} />
+                                </span>
+                                <span className={`text-sm font-bold font-inter flex items-center justify-center gap-1 ${yearStats.assetGrowthRate < 1 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                    {yearStats.assetGrowthRate < 1 && yearStats.assetGrowthRate > 0 ? <TrendingDown size={14} /> : null}
+                                    {formatRate(yearStats.assetGrowthRate)}
+                                </span>
+                                <div className="absolute bottom-full mb-2 w-56 bg-slate-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl">
+                                    <div className="font-bold border-b border-slate-600 pb-1 mb-1">計算明細 {(currentYear - 1)} vs {currentYear}</div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">今年收入:</span><span className="font-inter">{formatWan(yearStats.totalIncome)}</span></div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">去年收入:</span><span className="font-inter">{formatWan(yearStats.lastYearIncome)}</span></div>
+                                    <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-600">公式: 今年收入 / 去年收入</div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center relative group/tooltip z-10">
+                                <span className="text-[10px] text-slate-400 font-inter mb-1 flex items-center gap-1 cursor-help">
+                                    收入占總所得%數 <Info size={10} />
+                                </span>
+                                <span className="text-sm font-bold font-inter text-emerald-600">
+                                    {formatRate(yearStats.incomeGrowthRate)}
+                                </span>
+                                <div className="absolute bottom-full mb-2 w-56 bg-slate-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl">
+                                    <div className="font-bold border-b border-slate-600 pb-1 mb-1">計算明細</div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">本年度收入:</span><span className="font-inter">{formatWan(yearStats.totalIncome)}</span></div>
+                                    <div className="flex justify-between mb-1"><span className="text-slate-400">歷年總收入:</span><span className="font-inter">{formatWan(yearStats.totalAccumulatedIncome)}</span></div>
+                                    <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-600">公式: 今年收入 / 歷年總收入</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <h3 className="text-sm font-serif-tc text-slate-500 font-medium mb-4 flex justify-between items-center"><span>月份明細</span><span className="text-xs text-slate-300 font-inter font-light">點擊查看明細</span></h3>
                         <div className="space-y-0 divide-y divide-slate-100 border-t border-b border-slate-100">
                             {processedData.map((monthData) => (
@@ -1450,10 +1726,10 @@ export default function App() {
                                                 {monthData.balance > 0 ? '+' : ''}{formatWan(monthData.balance)}
                                                 <div className="group/tooltip relative">
                                                     <Info size={10} className="cursor-help text-slate-300 hover:text-slate-500 transition-colors ml-1" />
-                                                    <AnalysisTooltip 
-                                                        incomeDiff={monthData.analysis.incomeDiff} 
-                                                        assetDiff={monthData.analysis.assetDiff} 
-                                                        compositeScore={monthData.analysis.compositeScore} 
+                                                    <AnalysisTooltip
+                                                        incomeDiff={monthData.analysis.incomeDiff}
+                                                        assetDiff={monthData.analysis.assetDiff}
+                                                        compositeScore={monthData.analysis.compositeScore}
                                                         align="right"
                                                     />
                                                 </div>
@@ -1468,32 +1744,118 @@ export default function App() {
                 </main>
 
                 <button onClick={() => setShowAddModal(true)} className="fixed bottom-8 right-6 w-14 h-14 bg-slate-800 text-white rounded-full shadow-lg shadow-slate-800/30 flex items-center justify-center hover:bg-slate-700 hover:scale-105 transition-all z-30 group"><Plus size={28} strokeWidth={2} className="group-hover:rotate-90 transition-transform duration-300" /></button>
-                
-                {showImportModal && (<div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-6"><div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl relative animate-[fadeIn_0.2s_ease-out]"><button onClick={() => setShowImportModal(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors"><X size={20} /></button><div className="mb-6"><div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center mb-4"><FileJson size={20} className="text-teal-600" strokeWidth={1.5} /></div><h3 className="text-xl font-serif-tc font-bold text-slate-800">匯入資料</h3><p className="text-sm text-slate-400 mt-1 font-serif-tc">請上傳您的 JSON 備份檔案</p></div><div className="relative group cursor-pointer"><input type="file" accept=".json" onChange={handleFileUpload} ref={fileInputRef} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" /><div className="w-full h-32 border border-dashed border-slate-300 rounded-lg bg-slate-50/50 group-hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-slate-400 group-hover:text-teal-600 group-hover:border-teal-300"><Upload size={20} strokeWidth={1.5} className="mb-2" /><span className="text-xs font-inter tracking-wide">點擊或拖曳檔案至此</span></div></div></div></div>)}
-                
+
+                {showImportModal && (
+                    <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-6 transition-all duration-300">
+                        <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl relative animate-[fadeIn_0.2s_ease-out]">
+                            {!isImporting && (
+                                <button onClick={() => setShowImportModal(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors">
+                                    <X size={20} />
+                                </button>
+                            )}
+                            <div className="mb-6">
+                                <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center mb-4">
+                                    <FileJson size={20} className="text-teal-600" strokeWidth={1.5} />
+                                </div>
+                                <h3 className="text-xl font-serif-tc font-bold text-slate-800">匯入資料</h3>
+                                <p className="text-sm text-slate-400 mt-1 font-serif-tc">請上傳您的 JSON 備份檔案</p>
+                            </div>
+
+                            {isImporting ? (
+                                <div className="py-8 flex flex-col items-center justify-center">
+                                    <div className="w-16 h-16 relative mb-4">
+                                        <svg className="w-full h-full transform -rotate-90">
+                                            <circle cx="32" cy="32" r="28" stroke="#F1F5F9" strokeWidth="4" fill="none" />
+                                            <circle cx="32" cy="32" r="28" stroke="#0D9488" strokeWidth="4" fill="none" strokeDasharray="176" strokeDashoffset={176 - (176 * uploadProgress) / 100} className="transition-all duration-300 ease-out" />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-teal-600">{uploadProgress}%</div>
+                                    </div>
+                                    <p className="text-sm text-slate-500 font-bold animate-pulse">正在上傳並切割檔案...</p>
+                                    <p className="text-xs text-slate-400 mt-2 text-center max-w-[200px]">檔案較大時可能需要一點時間，請勿關閉視窗</p>
+                                </div>
+                            ) : (
+                                <div className="relative group cursor-pointer">
+                                    <input type="file" accept=".json" onChange={handleFileUpload} ref={fileInputRef} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                    <div className="w-full h-32 border border-dashed border-slate-300 rounded-lg bg-slate-50/50 group-hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-slate-400 group-hover:text-teal-600 group-hover:border-teal-300">
+                                        <Upload size={20} strokeWidth={1.5} className="mb-2" />
+                                        <span className="text-xs font-inter tracking-wide">點擊或拖曳檔案至此</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {showAddModal && (
                     <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-6">
                         <div className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl p-8 shadow-2xl relative animate-[slideUp_0.3s_ease-out]">
                             <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-serif-tc font-bold text-slate-800">新增紀錄</h3><button onClick={() => setShowAddModal(false)} className="text-slate-300 hover:text-slate-600"><X size={20} /></button></div>
                             <div className="grid grid-cols-2 gap-4">
                                 <button onClick={() => { setShowAddModal(false); setShowAddAssetModal(true); }} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-teal-200 hover:text-teal-700 transition-all group">
-                                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors"><Wallet size={20} strokeWidth={1.5} className="text-teal-600" /></div><span className="text-sm font-serif-tc font-bold">資產</span>
+                                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors"><Wallet size={20} strokeWidth={1.5} className="text-teal-600" /></div><span className="text-sm font-serif-tc font-bold">新增資產</span>
                                 </button>
                                 <button onClick={() => { setShowAddModal(false); setShowAddIncomeModal(true); }} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-teal-200 hover:text-teal-700 transition-all group">
-                                    <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors"><DollarSign size={20} strokeWidth={1.5} className="text-teal-600" /></div><span className="text-sm font-serif-tc font-bold">收入</span>
+                                    <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center mb-3 group-hover:bg-amber-100 transition-colors"><Coins size={20} strokeWidth={1.5} className="text-amber-600" /></div><span className="text-sm font-serif-tc font-bold">新增收入</span>
                                 </button>
-                                <div className="relative col-span-2 mt-2">
-                                    <input type="file" accept=".csv" ref={expenseFileInputRef} onChange={handleExpenseUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                    <button className="w-full flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-rose-200 hover:text-rose-700 transition-all group">
-                                        <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center mb-3 group-hover:bg-rose-100 transition-colors"><ShoppingBag size={20} strokeWidth={1.5} className="text-rose-600" /></div>
-                                        <span className="text-sm font-serif-tc font-bold">匯入花費 (MOZE CSV)</span><span className="text-[10px] text-slate-400 mt-1 font-inter">將覆蓋所有花費細項</span>
-                                    </button>
-                                </div>
+                                <button onClick={handleExportData} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-sky-200 hover:text-sky-700 transition-all group">
+                                    <div className="w-10 h-10 rounded-full bg-sky-50 flex items-center justify-center mb-3 group-hover:bg-sky-100 transition-colors"><Download size={20} strokeWidth={1.5} className="text-sky-600" /></div><span className="text-sm font-serif-tc font-bold">匯出備份</span>
+                                </button>
+                                <button onClick={() => { setShowAddModal(false); setShowImportModal(true); }} className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-indigo-200 hover:text-indigo-700 transition-all group">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mb-3 group-hover:bg-indigo-100 transition-colors"><Upload size={20} strokeWidth={1.5} className="text-indigo-600" /></div><span className="text-sm font-serif-tc font-bold">匯入資料</span>
+                                </button>
+                            </div>    <div className="relative col-span-2 mt-2">
+                                <input type="file" accept=".csv" ref={expenseFileInputRef} onChange={handleExpenseUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                <button className="w-full flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-rose-200 hover:text-rose-700 transition-all group">
+                                    <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center mb-3 group-hover:bg-rose-100 transition-colors"><ShoppingBag size={20} strokeWidth={1.5} className="text-rose-600" /></div>
+                                    <span className="text-sm font-serif-tc font-bold">匯入花費 (MOZE CSV)</span><span className="text-[10px] text-slate-400 mt-1 font-inter">將覆蓋所有花費細項</span>
+                                </button>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
-        </div>
+        </div >
+    );
+};
+
+const CustomPieTooltip = ({ active, payload, total }) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        const percent = total > 0 ? ((data.value / total) * 100).toFixed(0) : 0;
+
+        // Sort items by amount desc and take top 5
+        const sortedItems = [...data.items].sort((a, b) => b.amount - a.amount).slice(0, 5);
+        const remainingCount = data.items.length - 5;
+
+        return (
+            <div className="bg-white p-3 border border-slate-100 shadow-xl rounded-xl text-xs z-50 min-w-[150px]">
+                <div className="font-bold text-slate-700 mb-2 border-b border-slate-100 pb-1 flex justify-between items-center gap-4">
+                    <span>{data.name}</span>
+                    <span className="text-teal-600">{percent}%</span>
+                </div>
+                <div className="space-y-1 mb-2">
+                    {sortedItems.map((item, idx) => (
+                        <div key={idx} className="flex justify-between gap-4">
+                            <span className="text-slate-500 truncate max-w-[80px]">{item.name}</span>
+                            <span className="font-inter text-slate-700">{formatMoney(item.amount)}</span>
+                        </div>
+                    ))}
+                    {remainingCount > 0 && <div className="text-slate-300 text-center text-[10px] pt-1">...還有 {remainingCount} 筆</div>}
+                </div>
+                <div className="border-t border-slate-100 pt-2 flex justify-between font-bold text-slate-800">
+                    <span>總計</span>
+                    <span>{formatMoney(data.value)}</span>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+export default function App() {
+    return (
+        <AuthProvider>
+            <AuthenticatedApp />
+        </AuthProvider>
     );
 }
