@@ -165,9 +165,32 @@ const AnalysisTooltip = ({ incomeDiff, assetDiff, compositeScore, align = "cente
 
 const CustomChartTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
+        const d = payload[0].payload;
         return (
-            <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-xl border border-slate-700">
-                <p className="font-inter font-medium text-teal-300">{formatMoney(payload[0].value)}</p>
+            <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-xl border border-slate-700 min-w-[120px]">
+                <p className="font-inter font-bold text-teal-300 mb-1 border-b border-slate-600 pb-1">
+                    {d.year ? `${d.year}年` : `${d.month}月`}
+                </p>
+                <div className="flex justify-between gap-4 mb-0.5">
+                    <span className="text-slate-400">總資產</span>
+                    <span className="font-inter font-medium">{formatMoney(d.assets)}</span>
+                </div>
+                {d.incomeGrowthRate !== undefined && (
+                    <div className="border-t border-slate-600 pt-1 mt-1 space-y-0.5">
+                        <div className="flex justify-between gap-4 items-center">
+                            <span className="text-slate-400 scale-90 origin-left">收入年增長</span>
+                            <span className={`font-inter font-bold ${d.incomeGrowthRate >= 1 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {d.incomeGrowthRate >= 1 && d.incomeGrowthRate > 0 && <TrendingUp size={10} className="inline mr-1" />}
+                                {d.incomeGrowthRate < 1 && d.incomeGrowthRate > 0 && <TrendingDown size={10} className="inline mr-1" />}
+                                {formatRate(d.incomeGrowthRate)}
+                            </span>
+                        </div>
+                        <div className="flex justify-between gap-4 items-center">
+                            <span className="text-slate-400 scale-90 origin-left">收入占總所得</span>
+                            <span className="font-inter font-bold text-teal-400">{formatRate(d.incomeShare)}</span>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -255,18 +278,50 @@ const YearSelectorModal = ({ currentYear, availableYears, yearlyTrendData, onSel
                         尚無資產趨勢資料
                     </div>
                 )}
+
+
                 <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto hide-scrollbar">
-                    {availableYears.length > 0 ? availableYears.map(year => (
-                        <button
-                            key={year}
-                            onClick={() => onSelect(year)}
-                            className={`w-full py-3 px-4 rounded-xl text-lg font-inter flex justify-between items-center transition-all ${currentYear === year ? 'bg-teal-50 text-teal-700 font-bold shadow-sm border border-teal-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                                }`}
-                        >
-                            <span>{year}</span>
-                            {currentYear === year && <Check size={18} />}
-                        </button>
-                    )) : (
+                    {availableYears.length > 0 ? availableYears.map(year => {
+                        // Find stats for this year
+                        const stats = yearlyTrendData ? yearlyTrendData.find(d => d.year === year) : null;
+
+                        return (
+                            <button
+                                key={year}
+                                onClick={() => onSelect(year)}
+                                className={`w-full p-4 rounded-xl text-left border transition-all ${currentYear === year ? 'bg-teal-50 border-teal-200 shadow-md transform scale-[1.02]' : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-500'}`}
+                            >
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className={`text-lg font-inter font-bold flex items-center gap-2 ${currentYear === year ? 'text-teal-700' : 'text-slate-700'}`}>
+                                        {year}
+                                        {currentYear === year && <Check size={18} />}
+                                    </span>
+                                    {stats && <span className="text-xs font-inter text-slate-500">資產: {formatMoney(stats.assets)}</span>}
+                                </div>
+
+                                {stats ? (
+                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100/50">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-slate-400 mb-0.5">收入年增長</span>
+                                            <div className={`font-inter text-xs font-bold flex items-center ${stats.incomeGrowthRate >= 1 ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                                {stats.incomeGrowthRate >= 1 && stats.incomeGrowthRate > 0 && <TrendingUp size={10} className="mr-1" />}
+                                                {stats.incomeGrowthRate < 1 && stats.incomeGrowthRate > 0 && <TrendingDown size={10} className="mr-1" />}
+                                                {formatRate(stats.incomeGrowthRate)}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[10px] text-slate-400 mb-0.5">收入占總所得</span>
+                                            <div className="font-inter text-xs font-bold text-teal-500">
+                                                {formatRate(stats.incomeShare)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="pt-2 text-[10px] text-slate-300">無詳細數據</div>
+                                )}
+                            </button>
+                        );
+                    }) : (
                         <div className="col-span-3 text-center text-slate-400 text-sm py-2">無可用年份</div>
                     )}
                 </div>
@@ -1243,11 +1298,7 @@ const AuthenticatedApp = () => {
         return totalAssets;
     };
 
-    const yearlyTrendData = useMemo(() => {
-        return availableYears.map(year => {
-            return { year, assets: getYearEndAssets(year, data) };
-        }).sort((a, b) => a.year - b.year);
-    }, [availableYears, data]);
+
 
     const getYearTotalIncome = (year, sourceData) => {
         let total = 0;
@@ -1257,6 +1308,22 @@ const AuthenticatedApp = () => {
         });
         return total;
     };
+
+    const yearlyTrendData = useMemo(() => {
+        const totalAllTimeIncome = Object.values(data.incomes || {}).reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+        return availableYears.map(year => {
+            const income = getYearTotalIncome(year, data);
+            const lastYearIncome = getYearTotalIncome(year - 1, data);
+            const incomeGrowthRate = lastYearIncome > 0 ? income / lastYearIncome : 0;
+            const incomeShare = totalAllTimeIncome > 0 ? income / totalAllTimeIncome : 0;
+            return {
+                year,
+                assets: getYearEndAssets(year, data),
+                incomeGrowthRate,
+                incomeShare
+            };
+        }).sort((a, b) => a.year - b.year);
+    }, [availableYears, data]);
 
     const yearlyGrowthStats = useMemo(() => {
         const yearDates = Object.keys(data.records).filter(d => new Date(d).getFullYear() === currentYear).sort();
@@ -1606,8 +1673,8 @@ const AuthenticatedApp = () => {
                             </ResponsiveContainer>
                         </div>
                         <div className="mt-8 grid grid-cols-2 gap-3">
-                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group/tooltip z-10">
-                                <span className="text-xs text-slate-400 font-inter mb-1 block flex items-center gap-1 cursor-help">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group/tooltip z-10 flex flex-col items-center justify-center text-center">
+                                <span className="text-xs text-slate-400 font-inter mb-1 block flex items-center justify-center gap-1 cursor-help">
                                     年度資產增長金額 <Info size={12} />
                                 </span>
                                 <span className={`text-2xl font-inter font-bold ${yearStats.realAssetGrowthAmount >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
@@ -1620,8 +1687,8 @@ const AuthenticatedApp = () => {
                                     <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-600">公式: 今年度資產 - 去年度資產</div>
                                 </div>
                             </div>
-                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group/tooltip z-10">
-                                <span className="text-xs text-slate-400 font-inter mb-1 block flex items-center gap-1 cursor-help">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group/tooltip z-10 flex flex-col items-center justify-center text-center">
+                                <span className="text-xs text-slate-400 font-inter mb-1 block flex items-center justify-center gap-1 cursor-help">
                                     年度資產增長比例 <Info size={12} />
                                 </span>
                                 <span className="text-2xl font-inter font-bold text-emerald-600">
@@ -1637,10 +1704,10 @@ const AuthenticatedApp = () => {
                         </div>
                         <div className="mt-4 p-4 bg-slate-800 text-white rounded-xl shadow-lg relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                            <div className="relative z-10 flex justify-between items-center px-4">
-                                <div className="flex flex-col gap-1"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><Mountain size={12} className="text-emerald-400" /> 年度最高 ({assetExtremes.max.month}月)</span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.max.val)}</span></div>
+                            <div className="relative z-10 flex justify-around items-center px-4">
+                                <div className="flex flex-col gap-1 items-center text-center"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-center gap-1"><Mountain size={12} className="text-emerald-400" /> 年度最高 ({assetExtremes.max.month}月)</span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.max.val)}</span></div>
                                 <div className="w-px h-8 bg-slate-600 mx-2"></div>
-                                <div className="flex flex-col gap-1 text-right"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-end gap-1">年度最低 ({assetExtremes.min.month}月) <ArrowDown size={12} className="text-rose-400" /></span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.min.val)}</span></div>
+                                <div className="flex flex-col gap-1 items-center text-center"><span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center justify-center gap-1">年度最低 ({assetExtremes.min.month}月) <ArrowDown size={12} className="text-rose-400" /></span><span className="text-lg font-inter font-bold text-white">{formatWan(assetExtremes.min.val)}</span></div>
                             </div>
                         </div>
                     </section>
@@ -1720,10 +1787,10 @@ const AuthenticatedApp = () => {
                                     </div>
                                     <div className="text-right flex flex-col items-end gap-1">
                                         {monthData.income > 0 && <div className="text-xs text-emerald-600 font-inter bg-emerald-50 px-2 py-1 rounded-md">+{formatMoney(monthData.income)}</div>}
-                                        {monthData.balance !== 0 && (
-                                            <div className={`text-[10px] font-bold flex items-center gap-1 ${monthData.balance >= 0 ? 'text-emerald-500' : 'text-rose-400'}`}>
-                                                <PiggyBank size={10} />
-                                                {monthData.balance > 0 ? '+' : ''}{formatWan(monthData.balance)}
+                                        {monthData.analysis && (
+                                            <div className={`text-[10px] font-bold flex items-center gap-1 ${monthData.analysis.compositeScore >= 0 ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                                {monthData.analysis.compositeScore >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                                {monthData.analysis.compositeScore > 0 ? '+' : ''}{formatWan(monthData.analysis.compositeScore)}
                                                 <div className="group/tooltip relative">
                                                     <Info size={10} className="cursor-help text-slate-300 hover:text-slate-500 transition-colors ml-1" />
                                                     <AnalysisTooltip

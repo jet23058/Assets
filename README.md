@@ -1,56 +1,76 @@
-# 喵喵資產 (Meow Estate) - 專案安裝指南
+# 喵喵資產 (Meow Meow Assets) 🐾
 
-這是一個使用 React + Vite + Tailwind CSS 建構的個人資產管理 App。
+這是一個現代化、介面精美的個人資產追蹤應用程式。專為個人理財設計，提供直觀的資產增長趨勢、月度收支分析以及詳細的財務儀表板。
 
-## 📁 1. 建立專案結構
+![Version](https://img.shields.io/badge/version-2.0.0-teal.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-請在你的電腦上建立一個資料夾（例如 meow-assets），並依照下列結構整理檔案：
+## ✨ 特色功能
 
+### 📊 視覺化分析
+- **年度資產趨勢圖**: 使用互動式 Area Chart 呈現資產變化，支援年份切換。
+- **花費分佈分析**: 自動統計月度花費類別，以 Pie Chart 呈現前五大花費項目。
+- **綜合損益指標**: 獨家的綜合評分系統，結合收入成長與資產累積表現。
+
+### 💰 財務追蹤
+- **多維度紀錄**: 支援資產總額、月備忘錄、月收入、月結餘。
+- **CSV 匯入整合**: 完美支援 **MOZE** 記帳軟體 CSV 格式匯入，自動解析花費明細。
+- **年度統計卡片**: 
+  - 年度資產增長金額與比例
+  - 年度最高/最低資產月份
+  - 平均月收入與年總收入分析
+
+### ☁️ 雲端同步與安全
+- **Google 登入**: 整合 Firebase Authentication，安全快速。
+- **雲端備份**: 資料即時同步至 Firestore，換裝置也能無縫接軌。
+- **大數據優化**: 針對大量交易紀錄進行資料分塊 (Chunking) 處理，確保讀取效能。
+
+## 🛠️ 技術棧
+
+- **Frontend**: React 18, Vite
+- **UI/Styling**: Tailwind CSS (Simulated), Lucide React Icons
+- **Charts**: Recharts
+- **Backend/Auth**: Firebase (Auth, Firestore, Storage)
+
+## 🚀 快速開始
+
+### 1. 安裝依賴
+```bash
+npm install
 ```
-meow-assets/  
-├── index.html  
-├── package.json  
-├── vite.config.js  
-├── tailwind.config.js  
-├── postcss.config.js  
-└── src/  
-    ├── main.jsx  
-    ├── index.css  
-    └── App.jsx <-- 請將你在網頁上寫好的完整 App.jsx 複製到這裡  
+
+### 2. 設定環境變數
+請在專案根目錄建立 `.env` 檔案，並填入 Firebase 設定：
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-⚠️ **重要提示**：將 App.jsx 複製過來後，請刪除裡面原本的 &lt;style jsx="true"&gt;...&lt;/style&gt; 區塊。因為我們已經將樣式移到 src/index.css 與 tailwind.config.js 中了，保留該區塊可能會在本地端導致錯誤。
+### 3. 啟動開發伺服器
+```bash
+npm run dev
+```
+開啟瀏覽器訪問 `http://localhost:5173`。
 
-## 💻 2. 本地端執行 (Local)
+## 📝 版本紀錄
 
-你需要先安裝 Node.js (建議版本 18 以上)。
+- **v2.0.0** (Current)
+  - 整合 Firebase 雲端儲存與身份驗證。
+  - 新增年度資產統計卡片與詳細 Tooltip 分析。
+  - 優化 CSV 匯入流程與錯誤處理。
+  - 介面視覺升級。
 
-1. 開啟終端機 (Terminal / Command Prompt)，進入資料夾：  
-    ```
-    cd meow-assets  
-    ```
+- **v1.2.0**
+  - 使用 React + Vite 重構。
+  - 基礎資產記錄功能。
 
-1. 安裝套件：  
-    ```
-    npm install  
-    ```
+## 📄 License
+MIT
 
-1. 啟動開發伺服器：  
-    ```
-    npm run dev  
-    ```
-
-1. 打開瀏覽器，網址通常是 <http://localhost:5173。>
-
-## 🚀 3. 部署到線上 (Deploy to Vercel)
-
-最簡單的免費部署方式是使用 Vercel。
-
-- 將此資料夾上傳到你的 GitHub 儲存庫 (Repository)。
-- 註冊/登入 Vercel。
-- 點擊 "Add New..." -> "Project"。
-- 選擇你剛剛上傳的 GitHub 專案。
-- Vercel 會自動偵測這是 Vite 專案，直接點擊 "Deploy" 即可。
-- 等待約 1 分鐘，你的 App 就會在網路上運行了！
-
-@copyright Jet | v1.2.0
+---
+Developed by Jet & Antigravity
