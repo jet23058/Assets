@@ -1687,7 +1687,7 @@ const AuthenticatedApp = () => {
                     <div className="flex justify-between items-end mb-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">資產總覽</span>
+                                <span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">CAPITAL VIEW</span>
                                 <button
                                     onClick={handleManualSync}
                                     className="p-1 text-slate-300 hover:text-teal-600 transition-colors"
@@ -1697,7 +1697,7 @@ const AuthenticatedApp = () => {
                                 </button>
                             </div>
                             <h1 className="text-2xl font-serif-tc font-bold text-slate-800 flex items-center gap-2">
-                                資產總覽
+                                Capital View
                                 {isSaving && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-full animate-pulse border border-slate-200">儲存中...</span>}
                             </h1>
                         </div>
