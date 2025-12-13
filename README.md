@@ -1,36 +1,42 @@
-# 喵喵資產 (Meow Meow Assets) 🐾
+# Capital View 📊
 
-這是一個現代化、介面精美的個人資產追蹤應用程式。專為個人理財設計，提供直觀的資產增長趨勢、月度收支分析以及詳細的財務儀表板。
+**Capital View** 是一個現代化、介面精美的個人資產與投資組合追蹤應用程式。專為重視數據分析的投資者設計，提供直觀的資產增長趨勢、月度收支管理，以及深度的個股績效分析。
 
-![Version](https://img.shields.io/badge/version-2.0.0-teal.svg)
+![Version](https://img.shields.io/badge/version-2.1.0-teal.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## ✨ 特色功能
 
-### 📊 視覺化分析
-- **年度資產趨勢圖**: 使用互動式 Area Chart 呈現資產變化，支援年份切換。
-- **花費分佈分析**: 自動統計月度花費類別，以 Pie Chart 呈現前五大花費項目。
-- **綜合損益指標**: 獨家的綜合評分系統，結合收入成長與資產累積表現。
+### 📈 投資組合分析 (New!)
+- **個股績效模組**: 專屬的「個股績效分析」儀表板。
+- **持倉分佈**: 自動計算持倉佔比 (Pie Chart) 與市值分佈。
+- **損益追蹤**: 結合 CSV 交易紀錄與每月浮動資產，精確計算未實現損益與報酬率 (ROI)。
+- **配息現金流**: 視覺化呈現每月/年度股息收入，掌握被動收入趨勢。
 
-### 💰 財務追蹤
-- **多維度紀錄**: 支援資產總額、月備忘錄、月收入、月結餘。
-- **CSV 匯入整合**: 完美支援 **MOZE** 記帳軟體 CSV 格式匯入，自動解析花費明細。
-- **年度統計卡片**: 
-  - 年度資產增長金額與比例
-  - 年度最高/最低資產月份
-  - 平均月收入與年總收入分析
+### 📊 財務視覺化
+- **年度資產趨勢**: 互動式 Area Chart，支援跨年份比較。
+- **收支結構**: 自動統計花費類別，提供 Top 5 開銷分析。
+- **綜合損益指標**: 獨家綜合評分算法，結合「收入成長」與「資產累積」雙重指標。
 
-### ☁️ 雲端同步與安全
-- **Google 登入**: 整合 Firebase Authentication，安全快速。
-- **雲端備份**: 資料即時同步至 Firestore，換裝置也能無縫接軌。
-- **大數據優化**: 針對大量交易紀錄進行資料分塊 (Chunking) 處理，確保讀取效能。
+### 💰 全方位資產管理
+- **多維度紀錄**: 整合資產總額 (固定/浮動)、月收入、月結餘與備忘錄。
+- **智慧匯入**: 
+  - **MOZE 記帳**: 支援 CSV 花費匯入與自動分類。
+  - **證券戶交易**: 支援特定格式的 CSV 交易紀錄匯入 (股息/買賣)。
+- **年度統計卡片**: 快速檢視年度資產增長率、平均月收與資產高點。
+
+### ☁️ 企業級雲端架構
+- **Google 登入**: 整合 Firebase Authentication，安全便利。
+- **即時同步**: 資料即時寫入 Firestore，多裝置無縫接軌。
+- **智能分塊技術**: 針對大量歷史數據實作 Chunking 機制，突破 Firestore 單一文件限制，確保極速載入。
 
 ## 🛠️ 技術棧
 
 - **Frontend**: React 18, Vite
-- **UI/Styling**: Tailwind CSS (Simulated), Lucide React Icons
-- **Charts**: Recharts
-- **Backend/Auth**: Firebase (Auth, Firestore, Storage)
+- **UI System**: Tailwind CSS (Custom Theme: Teal/Beige), Lucide Icons
+- **Visualization**: Recharts
+- **Backend/Cloud**: Firebase (Auth, Firestore)
+- **Deployment**: Vercel
 
 ## 🚀 快速開始
 
@@ -59,11 +65,15 @@ npm run dev
 
 ## 📝 版本紀錄
 
-- **v2.0.0** (Current)
+- **v2.1.0** (Current)
+  - 新增 **個股績效分析** 模組。
+  - 支援證券交易 CSV 匯入。
+  - App 更名為 **Capital View**。
+
+- **v2.0.0**
   - 整合 Firebase 雲端儲存與身份驗證。
   - 新增年度資產統計卡片與詳細 Tooltip 分析。
-  - 優化 CSV 匯入流程與錯誤處理。
-  - 介面視覺升級。
+  - 資料分塊 (Chunking) 優化。
 
 - **v1.2.0**
   - 使用 React + Vite 重構。
