@@ -941,7 +941,6 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
                 {activeTab === 'assets' && (
                     <div className="space-y-8 animate-[fadeIn_0.2s]">
                         <section>
-                            <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><Wallet size={16} /> 固定資產</h3>
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                                 {fixedAssets.map((asset, idx) => (
                                     <div key={asset.id} className={`p-4 flex items-center justify-between ${idx !== fixedAssets.length - 1 ? 'border-b border-slate-100' : ''}`}>
@@ -963,7 +962,6 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
                             </div>
                         </section>
                         <section>
-                            <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><TrendingUp size={16} /> 浮動資產 (投資)</h3>
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                                 {floatingAssets.map((asset, idx) => (
                                     <div key={asset.id} className={`p-4 flex items-center justify-between relative ${idx !== floatingAssets.length - 1 ? 'border-b border-slate-100' : ''}`}>
@@ -1001,7 +999,6 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
 
                 {activeTab === 'income' && (
                     <div className="space-y-4 animate-[fadeIn_0.2s]">
-                        <h3 className="text-sm font-serif-tc text-slate-500 font-bold mb-3 flex items-center gap-2"><DollarSign size={16} /> 收入細項</h3>
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                             {localIncomes.length > 0 ? localIncomes.map((item, idx) => (
                                 <div key={idx} className={`p-4 ${idx !== localIncomes.length - 1 ? 'border-b border-slate-100' : ''}`}>
@@ -1071,31 +1068,51 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
                             </div>
                         </div>
 
-                        {expenseChartData.length > 0 && expenseFilter === 'all' && (
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col items-center">
-                                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-2">消費分類佔比</div>
-                                <div className="h-48 w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={expenseChartData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={40}
-                                                outerRadius={70}
-                                                paddingAngle={2}
-                                                dataKey="value"
-                                            >
-                                                {expenseChartData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip content={<CustomPieTooltip total={stats.monthlyCost} />} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
+                        {expenseChartData.length > 0 && expenseFilter === 'all' && (() => {
+                            const sortedData = [...expenseChartData].sort((a, b) => b.value - a.value);
+                            const top5 = sortedData.slice(0, 5);
+                            return (
+                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-inter mb-4 text-center">消費分類佔比 (Top 5)</div>
+                                    <div className="flex items-center justify-center gap-8">
+                                        <div className="h-32 w-32 flex-shrink-0 relative">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={sortedData}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={35}
+                                                        outerRadius={60}
+                                                        paddingAngle={2}
+                                                        dataKey="value"
+                                                    >
+                                                        {sortedData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip content={<CustomPieTooltip total={stats.monthlyCost} />} />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div className="flex flex-col gap-2 min-w-[140px]">
+                                            {top5.map((item, index) => {
+                                                const percent = stats.monthlyCost > 0 ? (item.value / stats.monthlyCost) : 0;
+                                                return (
+                                                    <div key={item.name} className="flex justify-between items-center text-xs">
+                                                        <div className="flex items-center gap-2 truncate">
+                                                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                                            <span className="text-slate-600 truncate font-medium">{item.name}</span>
+                                                        </div>
+                                                        <span className="font-bold text-slate-700 font-inter">{formatRate(percent)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                             {filteredExpenses.length > 0 ? (
@@ -1198,12 +1215,30 @@ const AuthenticatedApp = () => {
 
         if (snapshot.empty) return null;
 
-        let fullString = "";
-        snapshot.forEach(doc => {
-            fullString += doc.data().content;
-        });
+        const chunks = snapshot.docs.map(doc => doc.data().content || "");
+        const fullString = chunks.join('');
 
-        return JSON.parse(fullString);
+        try {
+            return JSON.parse(fullString);
+        } catch (error) {
+            console.warn("JSON parse failed, attempting chunk recovery strategy...", error);
+            // Heuristic: Ghost chunks might exist if the previous save was larger and the new data size 
+            // is an exact multiple of CHUNK_SIZE, causing the 'break' logic (based on size < CHUNK_SIZE) to fail.
+            // We try removing chunks from the end one by one to find the valid JSON boundary.
+            let currentString = fullString;
+            for (let i = chunks.length - 1; i > 0; i--) {
+                const lastChunkLen = chunks[i].length;
+                currentString = currentString.slice(0, -lastChunkLen);
+                try {
+                    const result = JSON.parse(currentString);
+                    console.log(`Recovered data by trimming ${chunks.length - i} tail chunk(s).`);
+                    return result;
+                } catch (e) {
+                    continue;
+                }
+            }
+            throw error; // If all retries fail, rethrow original error
+        }
     };
 
     // --- Sync Logic ---
@@ -1229,35 +1264,14 @@ const AuthenticatedApp = () => {
         loadUserData();
     }, [user]);
 
-    // 2. Auto-Save Logic (Debounced)
-    useEffect(() => {
-        if (!user || !isDataLoaded) return;
 
-        const saveData = async () => {
-            setIsSaving(true);
-            try {
-                await saveToFirestoreChunks(data);
-                console.log("Data saved to Firestore chunks");
-            } catch (error) {
-                console.error("Error saving chunks: ", error);
-            } finally {
-                setTimeout(() => {
-                    setIsSaving(false);
-                    setUploadProgress(0);
-                }, 500);
-            }
-        };
-
-        const timeoutId = setTimeout(saveData, 2000);
-
-        return () => clearTimeout(timeoutId);
-    }, [data, user, isDataLoaded]);
 
     const [showImportModal, setShowImportModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showAddAssetModal, setShowAddAssetModal] = useState(false);
     const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
     const [showYearSelector, setShowYearSelector] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const fileInputRef = useRef(null);
     const expenseFileInputRef = useRef(null);
@@ -1419,7 +1433,27 @@ const AuthenticatedApp = () => {
         }
 
         return monthlyStats;
+        return monthlyStats;
     }, [data, currentYear]);
+
+    const handleManualSync = async () => {
+        setIsSyncing(true);
+        try {
+            // Pull from cloud
+            const cloudData = await loadFromFirestoreChunks();
+            if (cloudData) {
+                setData(cloudData);
+                handleShowAlert("同步成功", "已從雲端更新最新資料");
+            } else {
+                handleShowAlert("同步完成", "雲端無資料");
+            }
+        } catch (error) {
+            console.error(error);
+            handleShowAlert("同步失敗", "無法連接雲端");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     const assetExtremes = useMemo(() => {
         let allPoints = [];
@@ -1537,7 +1571,9 @@ const AuthenticatedApp = () => {
         const file = event.target.files[0];
         if (!file) return;
         handleProcessExpenseCSV(file, (expensesByMonth) => {
-            setData(prev => ({ ...prev, expenses: expensesByMonth }));
+            const newData = { ...data, expenses: expensesByMonth };
+            setData(newData);
+            saveToFirestoreChunks(newData); // Push to cloud
             handleShowAlert("匯入成功", "花費細項已成功覆蓋");
             setShowAddModal(false);
             if (expenseFileInputRef.current) expenseFileInputRef.current.value = "";
@@ -1553,50 +1589,62 @@ const AuthenticatedApp = () => {
         if (type === 'NAVIGATE_DATE') setSelectedDate(payload);
         else if (type === 'UPDATE_RECORDS') {
             const { date, assets } = payload;
-            setData(prev => ({ ...prev, records: { ...prev.records, [date]: assets } }));
+            const newData = { ...data, records: { ...data.records, [date]: assets } };
+            setData(newData);
+            saveToFirestoreChunks(newData);
         } else if (type === 'UPDATE_MEMO') {
             const { date, content } = payload;
-            setData(prev => ({ ...prev, memos: { ...prev.memos, [date]: content } }));
+            const newData = { ...data, memos: { ...data.memos, [date]: content } };
+            setData(newData);
+            saveToFirestoreChunks(newData);
         } else if (type === 'UPDATE_INCOME') {
             const { date, sources } = payload;
             const yearMonth = date.substring(0, 7);
             const newTotal = sources.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-            setData(prev => ({
-                ...prev,
+            const newData = {
+                ...data,
                 incomes: {
-                    ...prev.incomes,
-                    [yearMonth]: { ...prev.incomes[yearMonth], totalAmount: newTotal, sources: sources }
+                    ...data.incomes,
+                    [yearMonth]: { ...data.incomes[yearMonth], totalAmount: newTotal, sources }
                 }
-            }));
+            };
+            setData(newData);
+            saveToFirestoreChunks(newData);
         } else if (type === 'DELETE_DATE') {
             const dateToDelete = payload;
-            setData(prev => {
-                const newRecords = { ...prev.records }; delete newRecords[dateToDelete];
-                const newMemos = { ...prev.memos }; delete newMemos[dateToDelete];
-                return { ...prev, records: newRecords, memos: newMemos };
-            });
+            const newData = { ...data };
+            if (newData.records) delete newData.records[dateToDelete];
+            if (newData.memos) delete newData.memos[dateToDelete];
+            setData(newData);
+            saveToFirestoreChunks(newData);
             setView('dashboard');
             handleShowAlert("刪除成功", `已刪除 ${dateToDelete} 的所有紀錄`);
         }
     };
 
     const handleSaveNewAsset = (newAsset, dateKey) => {
-        setData(prev => ({ ...prev, records: { ...prev.records, [dateKey]: [...(prev.records[dateKey] || []), newAsset] } }));
+        const existingDetails = data.records[dateKey] || [];
+        const newData = {
+            ...data,
+            records: { ...data.records, [dateKey]: [...existingDetails, newAsset] }
+        };
+        setData(newData);
+        saveToFirestoreChunks(newData);
         handleShowAlert("新增成功", `資產 ${newAsset.name} 已新增到 ${dateKey}`);
         setShowAddAssetModal(false);
         setShowAddModal(false);
     };
 
     const handleSaveNewIncome = (newIncomeSource, dateKey) => {
-        setData(prev => {
-            const existingMonthData = prev.incomes[dateKey] || { totalAmount: 0, sources: [] };
-            const existingSources = existingMonthData.sources || [];
-            const newTotal = (existingMonthData.totalAmount || 0) + newIncomeSource.amount;
-            return {
-                ...prev,
-                incomes: { ...prev.incomes, [dateKey]: { ...existingMonthData, totalAmount: newTotal, sources: [...existingSources, newIncomeSource] } }
-            };
-        });
+        const existingMonthData = data.incomes[dateKey] || { totalAmount: 0, sources: [] };
+        const existingSources = existingMonthData.sources || [];
+        const newTotal = (existingMonthData.totalAmount || 0) + newIncomeSource.amount;
+        const newData = {
+            ...data,
+            incomes: { ...data.incomes, [dateKey]: { ...existingMonthData, totalAmount: newTotal, sources: [...existingSources, newIncomeSource] } }
+        };
+        setData(newData);
+        saveToFirestoreChunks(newData);
         handleShowAlert("新增成功", `已新增一筆收入至 ${dateKey}`);
         setShowAddIncomeModal(false);
         setShowAddModal(false);
@@ -1609,6 +1657,25 @@ const AuthenticatedApp = () => {
             {showYearSelector && <YearSelectorModal currentYear={currentYear} availableYears={availableYears} yearlyTrendData={yearlyTrendData} onSelect={(year) => { setCurrentYear(year); setShowYearSelector(false); }} onClose={() => setShowYearSelector(false)} />}
             {showAddIncomeModal && <AddIncomeModal onClose={() => setShowAddIncomeModal(false)} onSave={handleSaveNewIncome} assetNames={allAssetNames} />}
             {showAddAssetModal && <AddAssetModal onClose={() => setShowAddAssetModal(false)} onSave={handleSaveNewAsset} historyRecords={data.records} />}
+
+            {/* Global Loading Overlay */}
+            {(isImporting || isSaving || isSyncing) && (
+                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center flex-col animate-[fadeIn_0.2s]">
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 w-64">
+                        <div className="relative">
+                            <div className="w-12 h-12 border-4 border-slate-100 border-t-teal-500 rounded-full animate-spin"></div>
+                            {uploadProgress > 0 && <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-teal-600">{uploadProgress}%</div>}
+                        </div>
+                        <div className="text-center">
+                            <h3 className="text-slate-800 font-bold mb-1">
+                                {isSaving ? '儲存中...' : isSyncing ? '同步中...' : '匯入處理中...'}
+                            </h3>
+                            <p className="text-xs text-slate-400">正在同步至雲端資料庫</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {view === 'detail' && selectedDate && (
                 <div className="w-full max-w-md mx-auto">
                     <DetailView dateStr={selectedDate} data={data} onBack={() => setView('dashboard')} onUpdateData={handleDetailUpdate} assetNames={allAssetNames} />
@@ -1619,7 +1686,16 @@ const AuthenticatedApp = () => {
                 <header className="sticky top-0 z-20 px-6 py-5 bg-[#F9F9F7]/90 backdrop-blur-md border-b border-slate-200/50">
                     <div className="flex justify-between items-end mb-4">
                         <div>
-                            <div className="flex items-center gap-2 mb-1"><Cat size={18} strokeWidth={1.5} className="text-teal-600" /><span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">喵喵資產</span></div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">資產總覽</span>
+                                <button
+                                    onClick={handleManualSync}
+                                    className="p-1 text-slate-300 hover:text-teal-600 transition-colors"
+                                    title="同步資料"
+                                >
+                                    <RefreshCw size={12} />
+                                </button>
+                            </div>
                             <h1 className="text-2xl font-serif-tc font-bold text-slate-800 flex items-center gap-2">
                                 資產總覽
                                 {isSaving && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-full animate-pulse border border-slate-200">儲存中...</span>}
