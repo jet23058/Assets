@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
-import { Cat, ChevronLeft, ChevronRight, Plus, Upload, Wallet, TrendingUp, DollarSign, Calendar, X, Save, FileJson, ArrowUpRight, ArrowDownRight, ArrowLeft, Edit2, Trash2, Info, Check, TrendingDown, RefreshCw, FileText, Mountain, ArrowDown, AlertCircle, Building2, Lock, PieChart as PieChartIcon, Download, StickyNote, ShoppingBag, Filter, ChevronDown, PiggyBank, Activity, Sparkles, LogOut, Coins } from 'lucide-react';
+import { Cat, ChevronLeft, ChevronRight, Plus, Upload, Wallet, TrendingUp, DollarSign, Calendar, X, Save, FileJson, ArrowUpRight, ArrowDownRight, ArrowLeft, Edit2, Trash2, Info, Check, TrendingDown, RefreshCw, FileText, Mountain, ArrowDown, AlertCircle, Building2, Lock, PieChart as PieChartIcon, Download, StickyNote, ShoppingBag, Filter, ChevronDown, PiggyBank, Activity, Sparkles, LogOut, Coins, ClipboardCheck } from 'lucide-react';
 
 // --- CSS 樣式與 Tailwind 設定模擬 ---
 // 原本 index.css 的內容與 tailwind.config.js 的動畫設定整合於此
@@ -1148,6 +1148,140 @@ const DetailView = ({ dateStr, data, onBack, onUpdateData, assetNames }) => {
     );
 };
 
+const StatementModal = ({ data, onClose }) => {
+    // Default Dates: Last Month 15th - This Month 16th
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1);
+        d.setDate(15);
+        return d.toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState(() => {
+        const d = new Date();
+        d.setDate(16);
+        return d.toISOString().split('T')[0];
+    });
+    const [selectedAccount, setSelectedAccount] = useState('');
+    const [checkedItems, setCheckedItems] = useState(new Set());
+
+    // Extract Unique Accounts
+    const accounts = useMemo(() => {
+        const accs = new Set();
+        Object.values(data.expenses || {}).forEach(list => {
+            list.forEach(item => {
+                if (item.account) accs.add(item.account);
+            });
+        });
+        return Array.from(accs).sort();
+    }, [data.expenses]);
+
+    // Set default account
+    useEffect(() => {
+        if (accounts.length > 0 && !selectedAccount) {
+            setSelectedAccount(accounts[0]);
+        }
+    }, [accounts]);
+
+    // Filter Expenses
+    const filteredExpenses = useMemo(() => {
+        if (!selectedAccount) return [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        // End date should be inclusive, set to end of day
+        end.setHours(23, 59, 59, 999);
+
+        const result = [];
+        Object.entries(data.expenses || {}).forEach(([month, list]) => {
+            // Optimization: Skip months clearly out of range (Optional, strictly checking dates is safer)
+            list.forEach(item => {
+                // Item date is YYYY/MM/DD or YYYY-MM-DD
+                const d = new Date(item.date.replace(/\//g, '-'));
+                if (item.account === selectedAccount && d >= start && d <= end) {
+                    result.push(item);
+                }
+            });
+        });
+        return result.sort((a, b) => new Date(b.date.replace(/\//g, '-')) - new Date(a.date.replace(/\//g, '-')));
+    }, [data.expenses, startDate, endDate, selectedAccount]);
+
+    const toggleCheck = (id) => {
+        const newSet = new Set(checkedItems);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setCheckedItems(newSet);
+    };
+
+    const totalAmount = filteredExpenses.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const checkedAmount = filteredExpenses.filter(i => checkedItems.has(i.id)).reduce((sum, i) => sum + (i.amount || 0), 0);
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-[fadeIn_0.2s]">
+            <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative flex flex-col max-h-[85vh]">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                <h3 className="text-xl font-serif-tc font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <div className="bg-teal-100 p-2 rounded-lg"><ClipboardCheck size={20} className="text-teal-700" /></div> 對帳單 Check
+                </h3>
+
+                {/* Filters */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">開始日期</label>
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full text-sm p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-teal-500 font-inter" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">結束日期</label>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full text-sm p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-teal-500 font-inter" />
+                    </div>
+                    <div className="col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 mb-1">對帳帳戶</label>
+                        <div className="relative">
+                            <select value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} className="w-full text-sm p-2 pl-9 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-teal-500 appearance-none font-inter">
+                                {accounts.map(acc => <option key={acc} value={acc}>{acc}</option>)}
+                            </select>
+                            <Wallet size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* List */}
+                <div className="flex-1 overflow-y-auto hide-scrollbar border rounded-xl border-slate-100 divide-y divide-slate-50">
+                    {filteredExpenses.length > 0 ? filteredExpenses.map(item => (
+                        <div key={item.id} onClick={() => toggleCheck(item.id)} className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${checkedItems.has(item.id) ? 'bg-teal-50/50' : 'hover:bg-slate-50'}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${checkedItems.has(item.id) ? 'bg-teal-500 border-teal-500' : 'border-slate-300'}`}>
+                                    {checkedItems.has(item.id) && <Check size={12} className="text-white" />}
+                                </div>
+                                <div>
+                                    <div className="font-bold text-slate-700 text-sm">{item.name}</div>
+                                    <div className="text-xs text-slate-400 font-inter">{item.date} • {item.category}</div>
+                                </div>
+                            </div>
+                            <div className={`font-inter font-bold ${checkedItems.has(item.id) ? 'text-teal-600' : 'text-slate-600'}`}>
+                                {formatMoney(item.amount)}
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="p-8 text-center text-slate-300 text-sm">此區間無交易紀錄</div>
+                    )}
+                </div>
+
+                {/* Footer Stats */}
+                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50 p-4 rounded-xl">
+                    <div>
+                        <div className="text-xs text-slate-400">已確認 ({checkedItems.size}/{filteredExpenses.length})</div>
+                        <div className="text-lg font-bold text-teal-600 font-inter">{formatMoney(checkedAmount)}</div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-xs text-slate-400">總金額</div>
+                        <div className="text-lg font-bold text-slate-700 font-inter">{formatMoney(totalAmount)}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 import { AuthProvider, useAuth } from './AuthContext';
 import LoginPage from './LoginPage';
 import { db } from './firebase';
@@ -1272,6 +1406,8 @@ const AuthenticatedApp = () => {
     const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
     const [showYearSelector, setShowYearSelector] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+
+    const [showStatementModal, setShowStatementModal] = useState(false);
 
     const fileInputRef = useRef(null);
     const expenseFileInputRef = useRef(null);
@@ -1658,6 +1794,7 @@ const AuthenticatedApp = () => {
             {showAddIncomeModal && <AddIncomeModal onClose={() => setShowAddIncomeModal(false)} onSave={handleSaveNewIncome} assetNames={allAssetNames} />}
             {showAddAssetModal && <AddAssetModal onClose={() => setShowAddAssetModal(false)} onSave={handleSaveNewAsset} historyRecords={data.records} />}
 
+            {showStatementModal && <StatementModal data={data} onClose={() => setShowStatementModal(false)} />}
             {/* Global Loading Overlay */}
             {(isImporting || isSaving || isSyncing) && (
                 <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center flex-col animate-[fadeIn_0.2s]">
@@ -1701,8 +1838,21 @@ const AuthenticatedApp = () => {
                                 {isSaving && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-full animate-pulse border border-slate-200">儲存中...</span>}
                             </h1>
                         </div>
-                        <div className="flex gap-2">
-                            {/* User Avatar & Logout */}
+                        <div className="flex gap-2 items-center">
+                            <button
+                                onClick={() => setShowStatementModal(true)}
+                                className="p-2 bg-white text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-all border border-slate-100 shadow-sm"
+                                title="對帳單功能"
+                            >
+                                <ClipboardCheck size={18} />
+                            </button>
+                            <button
+                                onClick={() => setView('stock-analysis')}
+                                className="p-2 bg-white text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-all border border-slate-100 shadow-sm"
+                                title="個股績效分析"
+                            >
+                                <TrendingUp size={18} />
+                            </button>
                             <div className="relative group/user z-50">
                                 <img src={user.photoURL || "https://ui-avatars.com/api/?name=User"} alt="User" className="w-9 h-9 rounded-full border border-slate-200 shadow-sm cursor-pointer" />
                                 <div className="absolute top-10 right-0 w-32 bg-white rounded-xl shadow-xl border border-slate-100 p-1 opacity-0 group-hover/user:opacity-100 transition-all pointer-events-none group-hover/user:pointer-events-auto transform origin-top-right scale-95 group-hover/user:scale-100">
