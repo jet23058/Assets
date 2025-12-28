@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
-import { Cat, ChevronLeft, ChevronRight, Plus, Upload, Wallet, TrendingUp, DollarSign, Calendar, X, Save, FileJson, ArrowUpRight, ArrowDownRight, ArrowLeft, Edit2, Trash2, Info, Check, TrendingDown, RefreshCw, FileText, Mountain, ArrowDown, AlertCircle, Building2, Lock, PieChart as PieChartIcon, Download, StickyNote, ShoppingBag, Filter, ChevronDown, PiggyBank, Activity, Sparkles, LogOut, Coins, ClipboardCheck, LayoutGrid } from 'lucide-react';
+import { Cat, ChevronLeft, ChevronRight, Plus, Upload, Wallet, TrendingUp, DollarSign, Calendar, X, Save, FileJson, ArrowUpRight, ArrowDownRight, ArrowLeft, Edit2, Trash2, Info, Check, TrendingDown, RefreshCw, FileText, Mountain, ArrowDown, AlertCircle, Building2, Lock, PieChart as PieChartIcon, Download, StickyNote, ShoppingBag, Filter, ChevronDown, PiggyBank, Activity, Sparkles, LogOut, Coins, ClipboardCheck, LayoutGrid, Package, Box, Footprints } from 'lucide-react';
 
 // --- CSS 樣式與 Tailwind 設定模擬 ---
 // 原本 index.css 的內容與 tailwind.config.js 的動畫設定整合於此
@@ -9,7 +9,7 @@ const GlobalStyles = () => (
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
     body {
-      background-color: #F9F9F7;
+      background-color: #FFFFFF;
       margin: 0;
       padding: 0;
       font-family: 'Inter', sans-serif;
@@ -130,7 +130,7 @@ const AnalysisTooltip = ({ incomeDiff, assetDiff, compositeScore, align = "cente
 
     return (
         <div className={`absolute bottom-full mb-2 w-[220px] rounded-xl bg-slate-800 p-4 text-[11px] text-white opacity-0 shadow-2xl transition-all group-hover/tooltip:opacity-100 pointer-events-none z-50 scale-95 group-hover/tooltip:scale-100 origin-bottom ${tooltipPosition}`}>
-            <div className="font-bold mb-2 pb-2 border-b border-slate-600 text-teal-300 text-center flex items-center justify-center gap-2">
+            <div className="font-bold mb-2 pb-2 border-b border-slate-600 text-amber-300 text-center flex items-center justify-center gap-2">
                 <TrendingUp size={12} /> 損益變動分析
             </div>
             <div className="space-y-2">
@@ -169,7 +169,7 @@ const CustomChartTooltip = ({ active, payload }) => {
         const d = payload[0].payload;
         return (
             <div className="bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-xl border border-slate-700 min-w-[120px]">
-                <p className="font-inter font-bold text-teal-300 mb-1 border-b border-slate-600 pb-1">
+                <p className="font-inter font-bold text-amber-300 mb-1 border-b border-slate-600 pb-1">
                     {d.year ? `${d.year}年` : `${d.month}月`}
                 </p>
                 <div className="flex justify-between gap-4 mb-0.5">
@@ -188,7 +188,7 @@ const CustomChartTooltip = ({ active, payload }) => {
                         </div>
                         <div className="flex justify-between gap-4 items-center">
                             <span className="text-slate-400 scale-90 origin-left">收入占總所得</span>
-                            <span className="font-inter font-bold text-teal-400">{formatRate(d.incomeShare)}</span>
+                            <span className="font-inter font-bold text-amber-400">{formatRate(d.incomeShare)}</span>
                         </div>
                     </div>
                 )}
@@ -199,7 +199,7 @@ const CustomChartTooltip = ({ active, payload }) => {
 };
 
 const DiffBadge = ({ current, prev }) => {
-    if (prev === undefined || prev === null) return <span className="text-[10px] text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded ml-2 font-bold">New</span>;
+    if (prev === undefined || prev === null) return <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded ml-2 font-bold">New</span>;
     const diff = current - prev;
     if (diff === 0) return <span className="text-[10px] text-slate-300 ml-2">-</span>;
     const isPositive = diff > 0;
@@ -1293,7 +1293,7 @@ const FIREModal = ({ fireStats, yearlyStats = [], onRateChange, onClose }) => {
             <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={20} /></button>
                 <h3 className="text-xl font-serif-tc font-bold text-slate-800 mb-6 flex items-center gap-2 flex-shrink-0">
-                    <div className="bg-teal-100 p-2 rounded-lg"><Mountain size={20} className="text-teal-700" /></div> FIRE 目標
+                    <div className="bg-amber-100 p-2 rounded-lg"><Mountain size={20} className="text-amber-700" /></div> FIRE 目標
                 </h3>
 
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 relative overflow-hidden group mb-4 flex-shrink-0">
@@ -1310,7 +1310,7 @@ const FIREModal = ({ fireStats, yearlyStats = [], onRateChange, onClose }) => {
                                         onChange={(e) => setLocalRate(e.target.value)}
                                         onBlur={handleBlur}
                                         onKeyDown={(e) => e.key === 'Enter' && handleBlur()}
-                                        className="w-12 bg-transparent text-center outline-none border-b border-dashed border-slate-300 focus:border-teal-500 ml-1 font-bold text-teal-600 appearance-none"
+                                        className="w-12 bg-transparent text-center outline-none border-b border-dashed border-slate-300 focus:border-amber-500 ml-1 font-bold text-amber-600 appearance-none"
                                     />%
                                 </span>
                             </h3>
@@ -1328,7 +1328,7 @@ const FIREModal = ({ fireStats, yearlyStats = [], onRateChange, onClose }) => {
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                         <div
-                            className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full shadow-[0_0_10px_rgba(20,184,166,0.5)] transition-all duration-1000 ease-out"
+                            className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-1000 ease-out"
                             style={{ width: `${Math.min(fireStats.progress * 100, 100)}%` }}
                         ></div>
                     </div>
@@ -1371,8 +1371,8 @@ const AuthenticatedApp = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F9F9F7]">
-                <div className="w-8 h-8 border-4 border-slate-200 border-t-teal-600 rounded-full animate-spin"></div>
+            <div className="min-h-screen flex items-center justify-center bg-white">
+                <div className="w-8 h-8 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -1934,7 +1934,7 @@ const AuthenticatedApp = () => {
     };
 
     return (
-        <div className="min-h-screen max-w-md mx-auto bg-[#F9F9F7] text-slate-800 relative font-sans shadow-2xl overflow-hidden">
+        <div className="min-h-screen max-w-md mx-auto bg-white text-slate-800 relative font-sans shadow-2xl overflow-hidden">
             <GlobalStyles />
             {alertInfo.show && <AlertModal title={alertInfo.title} message={alertInfo.message} onClose={() => setAlertInfo({ ...alertInfo, show: false })} />}
             {showYearSelector && <YearSelectorModal currentYear={currentYear} availableYears={availableYears} yearlyTrendData={yearlyTrendData} onSelect={(year) => { setCurrentYear(year); setShowYearSelector(false); }} onClose={() => setShowYearSelector(false)} />}
@@ -1972,24 +1972,25 @@ const AuthenticatedApp = () => {
                     <div className="flex justify-between items-end mb-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">CAPITAL VIEW</span>
+                                <span className="text-xs uppercase tracking-[0.2em] text-slate-400 font-inter">Personal Catalog</span>
                                 <button
                                     onClick={handleManualSync}
-                                    className="p-1 text-slate-300 hover:text-teal-600 transition-colors"
+                                    className="p-1 text-slate-300 hover:text-amber-500 transition-colors"
                                     title="同步資料"
                                 >
                                     <RefreshCw size={12} />
                                 </button>
                             </div>
                             <h1 className="text-2xl font-serif-tc font-bold text-slate-800 flex items-center gap-2">
-                                Capital View
-                                {isSaving && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-full animate-pulse border border-slate-200">儲存中...</span>}
+                                <Cat size={26} className="text-amber-400" />
+                                CatLog
+                                {isSaving && <span className="text-[10px] bg-amber-50 text-amber-500 px-2 py-1 rounded-full animate-pulse border border-amber-200">儲存中...</span>}
                             </h1>
                         </div>
                         <div className="flex gap-2 items-center relative">
                             <button
                                 onClick={() => setShowAdvancedMenu(!showAdvancedMenu)}
-                                className="p-2 bg-white text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-all border border-slate-100 shadow-sm"
+                                className="p-2 bg-white text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-full transition-all border border-slate-100 shadow-sm"
                                 title="進階功能"
                             >
                                 <LayoutGrid size={18} />
@@ -2043,7 +2044,7 @@ const AuthenticatedApp = () => {
                     </div>
                     <div className="flex items-center justify-between mt-4">
                         <button onClick={() => setCurrentYear(y => y - 1)} className="p-2 text-slate-400 hover:text-slate-800 transition-colors"><ChevronLeft size={24} strokeWidth={1.5} /></button>
-                        <button onClick={() => setShowYearSelector(true)} className="text-3xl font-inter font-light tracking-tight text-slate-800 hover:text-teal-600 transition-colors px-4 py-1 rounded-lg hover:bg-slate-100 flex-1 text-center">{currentYear}</button>
+                        <button onClick={() => setShowYearSelector(true)} className="text-3xl font-inter font-light tracking-tight text-slate-800 hover:text-amber-500 transition-colors px-4 py-1 rounded-lg hover:bg-slate-100 flex-1 text-center">{currentYear}</button>
                         <button
                             onClick={() => setCurrentYear(y => y + 1)}
                             disabled={currentYear >= realCurrentYear}
@@ -2060,12 +2061,12 @@ const AuthenticatedApp = () => {
                         <div className="h-28 w-full -ml-2">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={processedData}>
-                                    <defs><linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0D9488" stopOpacity={0.2} /><stop offset="95%" stopColor="#0D9488" stopOpacity={0} /></linearGradient></defs>
+                                    <defs><linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FBBF24" stopOpacity={0.2} /><stop offset="95%" stopColor="#FBBF24" stopOpacity={0} /></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter' }} dy={10} />
                                     <YAxis tickFormatter={(val) => `${val / 10000}萬`} axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'Inter' }} width={40} />
                                     <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1 }} />
-                                    <Area type="monotone" dataKey="assets" stroke="#0F766E" strokeWidth={2} fillOpacity={1} fill="url(#colorAssets)" />
+                                    <Area type="monotone" dataKey="assets" stroke="#D97706" strokeWidth={2} fillOpacity={1} fill="url(#colorAssets)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
@@ -2083,6 +2084,7 @@ const AuthenticatedApp = () => {
                                     <div className="flex justify-between mb-1"><span className="text-slate-400">去年資產:</span><span className="font-inter">{formatWan(yearStats.lastYearAssets)}</span></div>
                                     <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-600">公式: 今年度資產 - 去年度資產</div>
                                 </div>
+                                <Footprints className="absolute -bottom-3 -right-2 text-amber-100 opacity-40 rotate-[-15deg]" size={50} />
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group/tooltip z-10 flex flex-col items-center justify-center text-center">
                                 <span className="text-xs text-slate-400 font-inter mb-1 block flex items-center justify-center gap-1 cursor-help">
@@ -2097,6 +2099,7 @@ const AuthenticatedApp = () => {
                                     <div className="flex justify-between mb-1"><span className="text-slate-400">去年資產:</span><span className="font-inter">{formatWan(yearStats.lastYearAssets)}</span></div>
                                     <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-600">公式: 今年度資產 / 去年度資產</div>
                                 </div>
+                                <Cat className="absolute -bottom-2 -left-2 text-amber-100 opacity-40 rotate-[15deg] scale-x-[-1]" size={50} />
                             </div>
                         </div>
                         <div className="mt-4 p-4 bg-slate-800 text-white rounded-xl shadow-lg relative overflow-hidden">
