@@ -2115,7 +2115,7 @@ const AuthenticatedApp = () => {
                                 </button>
                             </div>
                             <h1 className="text-2xl font-serif-tc font-bold text-slate-800 flex items-center gap-2">
-                                <Cat size={26} className="text-amber-400" />
+                                <img src="/favicon.png" alt="CatLog Logo" className="w-[30px] h-[30px] object-contain" />
                                 CatLog
                                 {isSaving && <span className="text-[10px] bg-amber-50 text-amber-500 px-2 py-1 rounded-full animate-pulse border border-amber-200">儲存中...</span>}
                             </h1>
